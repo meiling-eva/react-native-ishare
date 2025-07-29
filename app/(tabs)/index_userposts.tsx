@@ -1,31 +1,32 @@
 import { useGlobalContext } from '@/context/GlobalContext';
-import { getFollowingUsers, getPosts } from '@/lib/appwrite';
-import { router } from 'expo-router';
+import { getPosts } from '@/lib/appwrite';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { FlatList, Image, Pressable, Text, View } from 'react-native';
 
-const Index_follow = () => {
+const Index_userposts = () => {
   const {user} = useGlobalContext();
-  const {refreshPostsCnt, refreshFollowingUserCnt} = useGlobalContext();
-  const pageSize = 10;
+  const {refreshPostsCnt} = useGlobalContext();
+  const { user_id } = useLocalSearchParams();
+  const creator_id = user_id;
+  const pageSize = 200;
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [followingUser, setFollowingUser] = useState<string[]>([]);
 
   const fetchPosts = async (isRefresh = false) => {
     if (loading || !user?.user_id) return;
     setLoading(true);
 
-    let followingUser = await getFollowingUsers(user?.user_id as string);
-    setFollowingUser(followingUser);
-
-    if(followingUser.length === 0){
-      followingUser = ['0']
-    }
-     
     try {
-      const posts = await getPosts(0, pageSize, followingUser);
-      setPosts(posts);
+      if(creator_id !== user?.user_id){
+        const posts = await getPosts(0, pageSize, [creator_id as string]);
+        setPosts(posts);
+      }
+      else{
+        const posts = await getPosts(0, pageSize, [user.user_id]);
+        setPosts(posts);
+      }
+      
     }
     catch (error) {
       console.log("fetchPosts error", error);
@@ -37,7 +38,7 @@ const Index_follow = () => {
 
   useEffect(() => {
     fetchPosts(true);
-  }, [refreshPostsCnt, user, refreshFollowingUserCnt]);
+  }, [refreshPostsCnt, user, creator_id]);
 
   return (
     <FlatList data={posts} 
@@ -76,4 +77,4 @@ const Index_follow = () => {
   )
 }
 
-export default Index_follow
+export default Index_userposts

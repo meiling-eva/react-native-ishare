@@ -11,6 +11,7 @@ const collectionIdUser = '686b920e00194a4141f8'
 const collectionIdFollow = '686f5a4c00363fb47095'
 const collectionIdPost = '686f5a2700047b7da857'
 const collectionIdComment = '686f5a40003c921f5c0f'
+const collectionIdLikePost = '6881cf27000c725e6cb3'
 const bucketId = '6874596e0013192ef96e'
 
 const account = new Account(client)
@@ -152,12 +153,17 @@ export const getPostById = async (post_id: string) => {
   }
 }
 
-export const getPosts = async (pageNumber: number, pageSize: number, user_ids?: string[]) => {
+export const getPosts = async (pageNumber: number, pageSize: number, user_ids?: string[], post_ids?: string[]) => {
   try {
     let queries = [Query.limit(pageSize), Query.offset(pageNumber * pageSize), Query.orderDesc('$createdAt')]
     if(user_ids){
       queries.push(Query.equal('creator_id', user_ids))
     }
+    
+    if(post_ids){
+      queries.push(Query.equal('$id', post_ids))
+    }
+
     const posts = await database.listDocuments(databaseId, collectionIdPost, queries)
     return posts.documents
   } catch (error) {
@@ -166,8 +172,74 @@ export const getPosts = async (pageNumber: number, pageSize: number, user_ids?: 
   }
 }
 
-//comment
+export const likePost = async (post_id: string) => {
+  try{
+    const res = await database.updateDocument(databaseId, collectionIdPost, post_id, {
+      like_count: {
+        $inc: 1
+      }
+    })
+    return res
+  }
+  catch(error){
+    console.log("appwrite likePost error", error)
+    throw error
+  }
+}
 
+export const unlikePost = async (post_id: string) => {
+  try{
+    const res = await database.updateDocument(databaseId, collectionIdPost, post_id, {
+      like_count: {
+        $inc: -1
+      }
+    })
+    return res
+  }
+  catch(error){
+    console.log("unlikePost error", error)
+    throw error
+  }
+}
+
+//likePostByUserId
+export const getLikedPost = async (user_id: string) => {
+  try{
+    const posts = await database.listDocuments(databaseId, collectionIdLikePost, [Query.equal('user_id', user_id)])
+    return posts.documents
+  }
+  catch(error){
+   // console.log("getPostByLike error", error)
+    throw error
+  }
+}
+
+export const likePostByUserId = async (post_id: string, user_id: string) => {
+  try{
+    const like = await database.createDocument(databaseId, collectionIdLikePost, ID.unique(), {
+      post_id: post_id,
+      user_id: user_id
+    })
+    return like
+  }
+  catch(error){
+    console.log("likePostByUserId error", error)
+    throw error
+  }
+}
+
+export const unlikePostByUserId = async (post_id: string, user_id: string) => { 
+  try{
+    const like = await database.listDocuments(databaseId, collectionIdLikePost, [Query.equal('post_id', post_id), Query.equal('user_id', user_id)])
+    return like
+  }
+  catch(error){
+    console.log("unlikePostByUserId error", error)
+    throw error
+  }
+}
+
+//comment
 export const createComment = async (post_id: string, from_user_id: string, user_name: string, user_avatar_url: string, content: string) => {
 try{
   const comment = await database.createDocument(databaseId, collectionIdComment, ID.unique(), {

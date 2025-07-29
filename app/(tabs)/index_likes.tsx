@@ -1,43 +1,46 @@
 import { useGlobalContext } from '@/context/GlobalContext';
-import { getFollowingUsers, getPosts } from '@/lib/appwrite';
-import { router } from 'expo-router';
+import { getLikedPost, getPosts } from '@/lib/appwrite';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { FlatList, Image, Pressable, Text, View } from 'react-native';
 
-const Index_follow = () => {
+const Index_likes = () => {
   const {user} = useGlobalContext();
-  const {refreshPostsCnt, refreshFollowingUserCnt} = useGlobalContext();
-  const pageSize = 10;
+  const { user_id } = useLocalSearchParams();
+  const creator_id = user_id;
+  const {refreshPostsCnt} = useGlobalContext();
+  const pageSize = 200;
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [followingUser, setFollowingUser] = useState<string[]>([]);
+  const [likedPosts, setLikedPosts] = useState<string[]>([]);
 
   const fetchPosts = async (isRefresh = false) => {
     if (loading || !user?.user_id) return;
     setLoading(true);
 
-    let followingUser = await getFollowingUsers(user?.user_id as string);
-    setFollowingUser(followingUser);
+    if(creator_id !== user?.user_id){
+      let likedPosts = await getLikedPost(creator_id as string);
+      setLikedPosts(likedPosts.map(post => post.post_id));
 
-    if(followingUser.length === 0){
-      followingUser = ['0']
-    }
-     
-    try {
-      const posts = await getPosts(0, pageSize, followingUser);
+      const posts = await getPosts(0, pageSize, undefined, likedPosts.map(post => post.post_id));
       setPosts(posts);
     }
-    catch (error) {
-      console.log("fetchPosts error", error);
+    else{
+      console.log("run user_id", user?.user_id)
+      let likedPosts = await getLikedPost(user?.user_id as string);
+      setLikedPosts(likedPosts.map(post => post.post_id));
+
+      const posts = await getPosts(0, pageSize, undefined, likedPosts.map(post => post.post_id));
+      console.log("user posts", posts)
+      setPosts(posts);
     }
-    finally {
       setLoading(false);
-    }
+    
   }
 
   useEffect(() => {
     fetchPosts(true);
-  }, [refreshPostsCnt, user, refreshFollowingUserCnt]);
+  }, [refreshPostsCnt, user, creator_id]);
 
   return (
     <FlatList data={posts} 
@@ -76,4 +79,4 @@ const Index_follow = () => {
   )
 }
 
-export default Index_follow
+export default Index_likes

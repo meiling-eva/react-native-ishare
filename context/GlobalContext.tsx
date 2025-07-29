@@ -17,7 +17,10 @@ const GlobalContext = createContext<GlobalContextType>({
         user_id: '',
         email: '',
         username: '',
-        avatar_url: ''
+        avatar_url: '',
+        followers_count: 0,
+        following_count: 0,
+        signature: ''
     },
     setUser: () => { },
     refreshUser: () => { },
@@ -37,7 +40,10 @@ export const GlobalContextProvider = ({ children }: { children: React.ReactNode 
             user_id: '',
             email: '',
             username: '',
-            avatar_url: ''
+            avatar_url: '',
+            followers_count: 0,
+            following_count: 0,
+            signature: ''
         }
     )
 
@@ -57,7 +63,10 @@ export const GlobalContextProvider = ({ children }: { children: React.ReactNode 
                 user_id: '',
                 email: '',
                 username: '',
-                avatar_url: ''
+                avatar_url: '',
+                followers_count: 0,
+                following_count: 0,
+                signature: ''
             })
         }
     }

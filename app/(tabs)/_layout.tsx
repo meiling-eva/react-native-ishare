@@ -54,7 +54,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: 'Login',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+        }}
+      />
+        <Tabs.Screen
+        name="profile_user"
+        options={{
+          title: 'Me',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
         }}
       />
@@ -79,13 +86,23 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="index_nearby"
+        name="index_likes"
         options={{
-          title: 'NearBy',
+          title: 'Likes',
           tabBarItemStyle: {
             display: 'none',
           },
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+        }}
+      />
+            <Tabs.Screen
+        name="index_userposts"
+        options={{
+          title: 'Posts',
+          tabBarItemStyle: {
+            display: 'none',
+          },
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
         }}
       />
       <Tabs.Screen

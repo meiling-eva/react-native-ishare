@@ -20,7 +20,6 @@ export default function HomeScreen() {
       >        
       <Tab.Screen name="Expole" component={Index_all} />
       <Tab.Screen name="Following" component={Index_follow} />
-      {/* <Tab.Screen name="NearBy" component={Index_nearby} /> */}
       </Tab.Navigator>  
     </SafeAreaView>
 

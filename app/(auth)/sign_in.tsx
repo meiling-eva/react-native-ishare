@@ -16,7 +16,7 @@ const sign_in = () => {
     try {
       const user = await login(email, password)
       setLoading(false)
-      router.push('/')
+      router.push('/profile_user')
       refreshUser()
     } catch (error) {
       console.error('Error signing in:', error)
@@ -46,12 +46,12 @@ const sign_in = () => {
           className='bg-blue-500 rounded-md p-2 mt-6 h-12'
           onPress={handleSignIn}
         >
-          <Text className='text-white text-center'>{loading ? 'Signing in...' : 'Sign in'}</Text>
+          <Text className='text-white text-center my-1'>{loading ? 'Signing in...' : 'Sign in'}</Text>
         </Pressable>
         <View className='flex-row gap-2 items-center justify-center'>
           <Text className='text-gray-500'>Don't have an account?</Text>
           <Link href="/sign_up">
-            <Text className='text-blue-500'>Sign up</Text>
+            <Text className='text-blue-500 items-center justify-center'>Sign up</Text>
           </Link>
         </View>
       </View>

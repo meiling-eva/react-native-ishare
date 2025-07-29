@@ -61,12 +61,12 @@ const sign_up = () => {
           className='bg-blue-500 rounded-md p-2 mt-6 h-12'
           onPress={handleSignUp}
         >
-          <Text className='text-white text-center'>{loading ? 'Signing up...' : 'Sign up'}</Text>
+          <Text className='text-white text-center justify-center my-1'>{loading ? 'Signing up...' : 'Sign up'}</Text>
         </Pressable>
         <View className='flex-row gap-2 items-center justify-center'>
           <Text className='text-gray-500'>Already have an account?</Text>
           <Link href="/sign_in">
-            <Text className='text-blue-500'>Sign in</Text>
+            <Text className='text-blue-500 items-center justify-center my-1'>Sign in</Text>
           </Link>
         </View>
       </View>

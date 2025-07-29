@@ -1,6 +1,6 @@
 import { useGlobalContext } from '@/context/GlobalContext';
 import { createComment, followUser, getCommentsByPostId, getFollowingUsers, getPostById, getUserByUserId, unfollowUser } from '@/lib/appwrite';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Image, Pressable, SafeAreaView, ScrollView, Text, TextInput, View } from 'react-native';
 
@@ -24,6 +24,10 @@ const Detail = () => {
     try {
       const post = await getPostById(post_id as string);
       const creator = await getUserByUserId(post.creator_id);
+      // console.log("creatorid", post.creator_id);
+      // console.log("user_id", user?.user_id);
+      // console.log("isUserSelf", isUserSelf);
+      // console.log("creator.username", creator.username)
       if (post.creator_id=== user?.user_id) {
         isUserSelf = true
       }
@@ -90,12 +94,16 @@ const Detail = () => {
       <ScrollView>
         {/* first row */}
         <View className='flex-row items-center justify-between bg-white mx-6 my-4'>
-          <View className='flex-row items-center justify-between gap-2'>
-            <Image
-              source={{ uri: CreatorAvatarUrl }}
-              className='w-10 h-10 rounded-full' />
-            <Text className='text-black text-md'>{CreatorName}</Text>
-          </View>
+          <Pressable  onPress={() => {
+              router.push(`/user_detail/${CreatorId}`);
+            }}>
+            <View className='flex-row items-center justify-between gap-2'>
+              <Image
+                source={{ uri: CreatorAvatarUrl }}
+                className='w-10 h-10 rounded-full' />
+              <Text className='text-black text-md'>{CreatorName}</Text>
+            </View>
+          </Pressable>
               <Pressable className='rounded-full p-2 px-4 bg-blue-300 w-30'
                 onPress={handleFollow}
                 style={{
@@ -135,13 +143,17 @@ const Detail = () => {
             comments.map((comment: any) => (
               <View className='mb-2 pb-2 border-b border-gray-200'
                 key={comment.$id}>
-                <View className='flex-row items-center mb-2'>
-                  <Image source={{ uri: comment.from_user_avatar_url }} className='w-8 h-8 rounded-full mr-2'></Image>
-                  <Text className='font-medium'>{comment.from_user_name}</Text>
-                  <Text className='text-ts text-gray-300 mx-4'>
-                    {new Date(comment.$createdAt).toLocaleDateString('en-AU')}
-                  </Text>
-                </View>
+                <Pressable onPress={() => {
+                  router.push(`/user_detail/${comment.from_user_id}`);
+                }}>
+                  <View className='flex-row items-center mb-2'>
+                    <Image source={{ uri: comment.from_user_avatar_url }} className='w-8 h-8 rounded-full mr-2'></Image>
+                    <Text className='font-medium'>{comment.from_user_name}</Text>
+                    <Text className='text-ts text-gray-300 mx-4'>
+                      {new Date(comment.$createdAt).toLocaleDateString('en-AU')}
+                    </Text>
+                  </View>
+                </Pressable>
                 <Text className='ml-10 text-gray-500'>{comment.content}</Text>
               </View>
             ))
