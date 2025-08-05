@@ -41,7 +41,14 @@ const UserDetail = () => {
         <SafeAreaView className='flex-1'>
             <View className='flex-row justify-between ml-5'>
                 <View className='flex-row items-center gap-2'>
-                    <Image source={{ uri: creator?.avatar_url }} className='w-15 h-15 rounded-full' />
+                    <Image 
+                    source={{ 
+                        uri: creator?.avatar_url && creator?.avatar_url.trim() !== '' 
+                          ? creator?.avatar_url 
+                          : 'https://via.placeholder.com/40x40?text=U'
+                      }}
+                    className='w-15 h-15 rounded-full' 
+                    />
                     <Text className='text-3xl font-bold justify-center'>
                         {creator?.username}
                     </Text>

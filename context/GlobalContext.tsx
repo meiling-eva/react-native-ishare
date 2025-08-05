@@ -12,6 +12,11 @@ type GlobalContextType = {
     refreshFollowingUserCnt: number
     refreshLikePost: () => void
     refreshLikePostCnt: number
+    // Side menu state
+    isSideMenuVisible: boolean
+    openSideMenu: () => void
+    closeSideMenu: () => void
+    toggleSideMenu: () => void
 }
 
 const GlobalContext = createContext<GlobalContextType>({
@@ -31,7 +36,12 @@ const GlobalContext = createContext<GlobalContextType>({
     refreshFollowingUser: () => { },
     refreshFollowingUserCnt: 0,
     refreshLikePost: () => { },
-    refreshLikePostCnt: 0
+    refreshLikePostCnt: 0,
+    // Side menu state
+    isSideMenuVisible: false,
+    openSideMenu: () => { },
+    closeSideMenu: () => { },
+    toggleSideMenu: () => { }
 })
 
 export const useGlobalContext = () => {
@@ -55,6 +65,21 @@ export const GlobalContextProvider = ({ children }: { children: React.ReactNode 
     const [refreshPostsCnt, setRefreshPostsCnt] = useState(0)
     const [refreshFollowingUserCnt, setRefreshFollowingUserCnt] = useState(0)
     const [refreshLikePostCnt, setRefreshLikePostCnt] = useState(0)
+
+    // Side menu state
+    const [isSideMenuVisible, setIsSideMenuVisible] = useState(false)
+
+    const openSideMenu = () => {
+        setIsSideMenuVisible(true)
+    }
+
+    const closeSideMenu = () => {
+        setIsSideMenuVisible(false)
+    }
+
+    const toggleSideMenu = () => {
+        setIsSideMenuVisible(prev => !prev)
+    }
 
     const getUserInfo = async () => {
         try {
@@ -100,7 +125,12 @@ export const GlobalContextProvider = ({ children }: { children: React.ReactNode 
                 refreshLikePost: () => {
                     setRefreshLikePostCnt(prev => prev + 1)
                 },
-                refreshLikePostCnt: refreshLikePostCnt
+                refreshLikePostCnt: refreshLikePostCnt,
+                // Side menu state
+                isSideMenuVisible,
+                openSideMenu,
+                closeSideMenu,
+                toggleSideMenu
             }
         }
         >

@@ -87,6 +87,7 @@ const Index_all = () => {
       numColumns={2}
       columnWrapperStyle={{ gap: 5 }}
       contentContainerStyle={{ gap: 4 }}
+      keyExtractor={(item) => item.$id}
       renderItem={({ item }) => {
         const isLiked = likedPosts.includes(item.$id);
         //console.log("likedPosts", likedPosts)

@@ -48,6 +48,9 @@ const createUser = async (email: string, username: string, user_id: string, avat
       email: email,
       username: username,
       avatar_url: avatar_url,
+      followers_count: 0,
+      following_count: 0,
+      signature: '',
     }) 
     return user.$id
   } catch (error) {
@@ -59,7 +62,6 @@ const createUser = async (email: string, username: string, user_id: string, avat
 export const getUserByUserId = async (user_id: string) => {
   try {
     const user = await database.listDocuments(databaseId, collectionIdUser, [Query.equal('user_id', user_id)])
-    //console.log("user", user)
     return user.documents[0]
   } catch (error) {
     console.log('getUserByUserId error',error)
@@ -111,7 +113,10 @@ export const getCurrentUser = async () => {
             user_id: res.$id,
             username: user.username,  
             email: user.email, 
-            avatar_url: user.avatar_url
+            avatar_url: user.avatar_url,
+            signature: user.signature,
+            followers_count: user.followers_count,
+            following_count: user.following_count,
         } as User
     }
     return null
@@ -206,7 +211,6 @@ const unFollowCreatorCount = async (user_id: string) => {
     const res = await database.updateDocument(databaseId, collectionIdUser, user.$id, {
       followers_count: Math.max(0, currentFollowerCount - 1)
     })
-
     return res
   }
   catch(error){

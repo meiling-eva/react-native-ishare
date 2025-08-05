@@ -86,7 +86,7 @@ const Detail = () => {
 
   useEffect(() => {
     getData();
-  }, []);
+  }, [refreshFollowingUser]);
 
   if (loading) {
     return (

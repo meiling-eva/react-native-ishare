@@ -44,6 +44,7 @@ const Index_follow = () => {
     numColumns={2}
     columnWrapperStyle={{ gap: 4 }}
     contentContainerStyle={{ gap: 4 }}
+    keyExtractor={(item) => item.$id}
     renderItem={({ item }) => (
       <Pressable className='flex-1 flex-col rounded-sm mt-1'
       onPress={() => {

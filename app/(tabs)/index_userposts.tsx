@@ -6,7 +6,7 @@ import { FlatList, Image, Pressable, Text, View } from 'react-native';
 
 const Index_userposts = () => {
   const { user } = useGlobalContext();
-  const { refreshPostsCnt } = useGlobalContext();
+  const { refreshPostsCnt, refreshFollowingUser } = useGlobalContext();
   const { user_id } = useLocalSearchParams();
   const creator_id = user_id;
   const pageSize = 200;
@@ -60,6 +60,7 @@ const Index_userposts = () => {
       numColumns={2}
       columnWrapperStyle={{ gap: 4 }}
       contentContainerStyle={{ gap: 4 }}
+      keyExtractor={(item) => item.$id}
       renderItem={({ item }) => (
         <Pressable className='flex-1 flex-col rounded-sm mt-1 w-1/2'
           onPress={() => {

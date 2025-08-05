@@ -55,7 +55,11 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Login',
+          tabBarItemStyle: {
+            display: 'none',
+          },
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+          
         }}
       />
         <Tabs.Screen
