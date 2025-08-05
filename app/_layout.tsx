@@ -26,6 +26,7 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
           <Stack.Screen name="detail/[post_id]"  />
+          <Stack.Screen name="user_detail/[user_id]"  />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

@@ -123,6 +123,98 @@ export const getCurrentUser = async () => {
 
 export { account, collectionIdUser, database, databaseId }
 
+export const handleFollowButton = async(user_id: string, creator_id: string, isFollowed: boolean) => {
+  //if user follow creator, creator's follower count +1, user's following count + 1, follow table entry should be created
+  //if user unfollow creator,
+  if(isFollowed){ //if is followed, unfollow creator
+    await unfollowUser(user_id, creator_id)
+    await subUserFollowingCount(user_id)
+    await unFollowCreatorCount(creator_id)
+  }
+  else{ //if is not followed, follow creator
+    await followUser(user_id, creator_id)
+    await addUserFollowingCount(user_id)
+    await followCreatorCount(creator_id)
+  }
+}
+
+//if follow creator, add 1 to user's following count
+const addUserFollowingCount = async (user_id: string) => {
+  try{
+    const user = await getUserByUserId(user_id)
+    if (!user) {
+      throw new Error('User not found');
+    }
+    const currentFollowingCount = parseInt(user.following_count) || 0
+    const res = await database.updateDocument(databaseId, collectionIdUser, user.$id, {
+      following_count: currentFollowingCount + 1
+    })
+    return res
+  }
+  catch(error){
+    console.log('addUserFollowingCount error',error)
+    throw error
+  }
+}
+
+//if unfollow creator, substract 1 from user's following count
+const subUserFollowingCount = async (user_id: string) =>{
+  try{
+    const user = await getUserByUserId(user_id)
+    if (!user) {
+      throw new Error('User not found');
+    }
+    const currentFollowingCount = parseInt(user.following_count) || 0
+    const res = await database.updateDocument(databaseId, collectionIdUser, user.$id, {
+      following_count: Math.max(0, currentFollowingCount - 1)
+    })
+    return res
+  }
+  catch(error){
+    console.log('subUserFollowingCount error',error)
+    throw error
+  }
+}
+
+//if follow creator, add 1 to creator's follower count
+const followCreatorCount = async (user_id: string) => {
+  try{
+    const user = await getUserByUserId(user_id)
+    if (!user) {
+      throw new Error('User not found');
+    }
+    const currentFollowerCount = parseInt(user.followers_count) || 0
+    const res = await database.updateDocument(databaseId, collectionIdUser, user.$id, {
+      followers_count: currentFollowerCount + 1 
+    })
+    return res
+  }
+  catch(error){
+    console.log('followCreatorCount error',error)
+    throw error
+  }
+}
+
+//if unfollow creator, subtract 1 from creator's follower count
+const unFollowCreatorCount = async (user_id: string) => {
+  try{
+    const user = await getUserByUserId(user_id)
+    if (!user) {
+      throw new Error('User not found');
+    }
+    const currentFollowerCount = parseInt(user.followers_count) || 0
+    const res = await database.updateDocument(databaseId, collectionIdUser, user.$id, {
+      followers_count: Math.max(0, currentFollowerCount - 1)
+    })
+
+    return res
+  }
+  catch(error){
+    console.log('unFollowCreatorCount error',error)
+    throw error
+  }
+}
+
 //post  
 export const createPost = async (title: string, content: string, image: string, creator_id: string, creator_name: string, creator_avatar_url: string, like_count: number) => {
   try {
@@ -156,11 +248,11 @@ export const getPostById = async (post_id: string) => {
 export const getPosts = async (pageNumber: number, pageSize: number, user_ids?: string[], post_ids?: string[]) => {
   try {
     let queries = [Query.limit(pageSize), Query.offset(pageNumber * pageSize), Query.orderDesc('$createdAt')]
-    if(user_ids){
+    if(user_ids && user_ids.length > 0){
       queries.push(Query.equal('creator_id', user_ids))
     }
     
-    if(post_ids){
+    if(post_ids && post_ids.length > 0){
       queries.push(Query.equal('$id', post_ids))
     }
 
@@ -174,25 +266,28 @@ export const getPosts = async (pageNumber: number, pageSize: number, user_ids?: 
 
 export const likePost = async (post_id: string) => {
   try{
+    // First get the current post to check the like_count
+    const currentPost = await database.getDocument(databaseId, collectionIdPost, post_id)
+    const currentLikeCount = parseInt(currentPost.like_count) || 0
     const res = await database.updateDocument(databaseId, collectionIdPost, post_id, {
-      like_count: {
-        $inc: 1
-      }
+      like_count: currentLikeCount + 1
     })
     return res
   }
   catch(error){
-    console.log("appwrite likePost error", error)
+    console.log("likePost error", error)
     throw error
   }
 }
 
 export const unlikePost = async (post_id: string) => {
   try{
+    // First get the current post to check the like_count
+    const currentPost = await database.getDocument(databaseId, collectionIdPost, post_id)
+    const currentLikeCount = parseInt(currentPost.like_count) || 0
+    //console.log("unlikePost currentLikeCount", currentLikeCount)
     const res = await database.updateDocument(databaseId, collectionIdPost, post_id, {
-      like_count: {
-        $inc: -1
-      }
+      like_count: Math.max(0, currentLikeCount - 1)
     })
     return res
   }
@@ -205,11 +300,13 @@ export const unlikePost = async (post_id: string) => {
 //likePostByUserId
 export const getLikedPost = async (user_id: string) => {
   try{
-    const posts = await database.listDocuments(databaseId, collectionIdLikePost, [Query.equal('user_id', user_id)])
+    //console.log("getLikedPost user_id", user_id)
+    const posts = await database.listDocuments(databaseId, collectionIdLikePost, [Query.equal('user_id', user_id), Query.orderDesc('$createdAt')])
+   //console.log(" app getLikedPost posts:", posts)
     return posts.documents
   }
   catch(error){
-   // console.log("getPostByLike error", error)
+    console.log("getLikedPost error", error)
     throw error
   }
 }
@@ -231,7 +328,12 @@ export const likePostByUserId = async (post_id: string, user_id: string) => {
 export const unlikePostByUserId = async (post_id: string, user_id: string) => { 
   try{
     const like = await database.listDocuments(databaseId, collectionIdLikePost, [Query.equal('post_id', post_id), Query.equal('user_id', user_id)])
-    return like
+    //console.log("unlikePostByUserId like", like)
+    if(like.documents.length > 0){
+      const deleteLike = await database.deleteDocument(databaseId, collectionIdLikePost, like.documents[0].$id)
+      return deleteLike
+    }
+    return null
   }
   catch(error){
     console.log("unlikePostByUserId error", error)
@@ -267,6 +369,27 @@ export const getCommentsByPostId = async (post_id: string) => {
 }
 
 //follow
+export const getFollowers = async (user_id: string) => {
+  try {
+    const followers = await database.listDocuments(databaseId, collectionIdFollow, [Query.equal('to_user_id', user_id)])
+    return followers.documents
+  } catch (error) {
+    console.log('getFollowers error',error)
+    throw error
+  }
+}
+
+export const getFollowing = async (user_id: string) => {  
+  try {
+    const following = await database.listDocuments(databaseId, collectionIdFollow, [Query.equal('from_user_id', user_id)])
+    return following.documents
+  } catch (error) {
+    console.log('getFollowing error',error)
+    throw error
+  }
+}
+
+
 export const followUser = async (from_user_id: string, to_user_id: string) => {
   try {
     const follow = await database.createDocument(databaseId, collectionIdFollow, ID.unique(), {
@@ -291,6 +414,16 @@ export const unfollowUser = async (from_user_id: string, to_user_id: string) => 
   } catch (error) {
     console.log('unfollowUser error', error)
     throw error
+  }
+}
+
+export const isFollowing = async (from_user_id: string, to_user_id: string) => {
+  try {
+    const follow = await database.listDocuments(databaseId, collectionIdFollow, [Query.equal('from_user_id', from_user_id), Query.equal('to_user_id', to_user_id)])
+    return follow.documents.length > 0
+  } catch (error) {
+    console.log('isFollowing error', error)
+    throw error 
   }
 }
 

@@ -7,7 +7,7 @@ import { FlatList, Image, Pressable, Text, View } from 'react-native';
 const Index_follow = () => {
   const {user} = useGlobalContext();
   const {refreshPostsCnt, refreshFollowingUserCnt} = useGlobalContext();
-  const pageSize = 10;
+  const pageSize = 200;
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [followingUser, setFollowingUser] = useState<string[]>([]);

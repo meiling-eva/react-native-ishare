@@ -17,6 +17,8 @@ const profile_user = () => {
     router.push('/sign_in')
     refreshUser()
   }
+
+
   return (
     <SafeAreaView className='flex-1'>
       <View className='flex-row justify-between ml-5'>
@@ -27,25 +29,22 @@ const profile_user = () => {
           </Text>
         </View>
         <View className='mr-5'>
-          <Pressable className='rounded-lg bg-blue-500 w-35 p-1' onPress={handleSignOut}>
-            <Text className='text-center font-semibold text-md text-white'>Sign out</Text>
+          <Pressable className='rounded-lg p-2 px-4 w-30 bg-blue-300 mr-5 mt-1' onPress={handleSignOut}>
+            <Text className='text-center text-md text-black'>Sign out</Text>
           </Pressable>
         </View>
       </View>      
-        <View className='mt-10 ml-5'>
-          <Text className='text-md'>Signature:</Text>
+        <View className='flex-row mt-10 ml-5'>
+          {/* <Text className='text-md'>Signature:</Text> */}
           <Text className='text-md'>{user?.signature}</Text>
         </View>
       <View className='flex-row ml-5 justify-between'>
-        <View className='flex-row'>
-          <Text className='text-md mt-1'>Follow: </Text>
-          <Text className='text-md mt-1'>{user?.followers_count}</Text>
+        <View className='flex-row mt-2 '>
+          <Text className='text-md mt-1'>Followers: </Text>
+          <Text className='text-md mt-1 mx-2'>{user?.followers_count}</Text>
           <Text className='text-md ml-20 mt-1'>Following:</Text>
-          <Text className='text-md mt-1'>{user?.following_count}</Text>
+          <Text className='text-md mt-1 mx-2'>{user?.following_count}</Text>
         </View>
-          <Pressable className='rounded-lg p-1 w-30 bg-blue-500 mr-5' >
-            <Text className='text-white font-semibold '>Follow</Text>
-          </Pressable>
       </View>
         <View className='flex-1 bg-white mt-5'>
           <Tab.Navigator
@@ -65,8 +64,6 @@ const profile_user = () => {
             <Tab.Screen name="Likes" component={Index_likes} />
           </Tab.Navigator>
         </View>
-
-       
     </SafeAreaView>
   )
 }

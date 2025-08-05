@@ -10,6 +10,8 @@ type GlobalContextType = {
     refreshPostsCnt: number
     refreshFollowingUser: () => void
     refreshFollowingUserCnt: number
+    refreshLikePost: () => void
+    refreshLikePostCnt: number
 }
 
 const GlobalContext = createContext<GlobalContextType>({
@@ -27,7 +29,9 @@ const GlobalContext = createContext<GlobalContextType>({
     refreshPosts: () => { },
     refreshPostsCnt: 0,
     refreshFollowingUser: () => { },
-    refreshFollowingUserCnt: 0
+    refreshFollowingUserCnt: 0,
+    refreshLikePost: () => { },
+    refreshLikePostCnt: 0
 })
 
 export const useGlobalContext = () => {
@@ -50,6 +54,7 @@ export const GlobalContextProvider = ({ children }: { children: React.ReactNode 
     const [refreshCnt, setRefreshCnt] = useState(0)
     const [refreshPostsCnt, setRefreshPostsCnt] = useState(0)
     const [refreshFollowingUserCnt, setRefreshFollowingUserCnt] = useState(0)
+    const [refreshLikePostCnt, setRefreshLikePostCnt] = useState(0)
 
     const getUserInfo = async () => {
         try {
@@ -91,7 +96,11 @@ export const GlobalContextProvider = ({ children }: { children: React.ReactNode 
                 refreshFollowingUser: () => {
                     setRefreshFollowingUserCnt(prev => prev + 1)
                 },
-                refreshFollowingUserCnt: refreshFollowingUserCnt
+                refreshFollowingUserCnt: refreshFollowingUserCnt,
+                refreshLikePost: () => {
+                    setRefreshLikePostCnt(prev => prev + 1)
+                },
+                refreshLikePostCnt: refreshLikePostCnt
             }
         }
         >
