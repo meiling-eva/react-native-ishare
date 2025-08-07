@@ -1,18 +1,20 @@
+import PostGridItem from '@/components/PostGridItem';
 import { useGlobalContext } from '@/context/GlobalContext';
-import { getPosts } from '@/lib/appwrite';
-import { router, useLocalSearchParams } from 'expo-router';
+import { getLikedPost, getPosts } from '@/lib/appwrite';
+import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { FlatList, Image, Pressable, Text, View } from 'react-native';
+import { FlatList, Text, View } from 'react-native';
 
 const Index_userposts = () => {
   const { user } = useGlobalContext();
-  const { refreshPostsCnt, refreshFollowingUser } = useGlobalContext();
+  const { refreshPostsCnt, refreshFollowingUser, refreshLikePost } = useGlobalContext();
   const { user_id } = useLocalSearchParams();
   const creator_id = user_id;
   const pageSize = 200;
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-
+  const [likedPosts, setLikedPosts] = useState<string[]>([]);
+  
   const fetchPosts = async (isRefresh = false) => {
     if (loading || !user?.user_id) return;
     setLoading(true);
@@ -35,9 +37,24 @@ const Index_userposts = () => {
     }
   }
 
+  const getLikedPosts = async () => {
+    let likedPostRecords = await getLikedPost(user?.user_id as string);
+    // Extract post_id from like documents
+    const postIds = likedPostRecords.map(record => record.post_id);
+    setLikedPosts(postIds);
+  }
+
+  const handleLikeChange = (postId: string, isLiked: boolean) => {
+    if (isLiked) {
+      setLikedPosts(prev => [...prev, postId]);
+    } else {
+      setLikedPosts(prev => prev.filter(id => id !== postId));
+    }
+  };
+
   useEffect(() => {
     fetchPosts(true);
-  }, [refreshPostsCnt, user, creator_id]);
+  }, [refreshPostsCnt, user, creator_id, refreshLikePost]);
 
   if (loading) {
     return (
@@ -56,42 +73,23 @@ const Index_userposts = () => {
   }
 
   return (
-    <FlatList data={posts}
-      numColumns={2}
-      columnWrapperStyle={{ gap: 4 }}
-      contentContainerStyle={{ gap: 4 }}
-      keyExtractor={(item) => item.$id}
-      renderItem={({ item }) => (
-        <Pressable className='flex-1 flex-col rounded-sm mt-1 w-1/2'
-          onPress={() => {
-            router.push(`/detail/${item?.$id}`);
-          }}
-        >
-          <Image source={{ uri: item.image }}
-            style={{
-              width: '100%',
-              height: 200,
-              maxHeight: 270,
-              aspectRatio: 1,
-              resizeMode: 'cover',
-              borderRadius: 4
-            }} />
-          <Text className='text-black text-md mt-2 my-2'>{item.title} </Text>
-          <View className='flex-row items-center justify-between'>
-            <View className='flex-row items-center'>
-              <Image
-                source={{ uri: item.creator_avatar_url }}
-                className='w-5 h-5 rounded-full' />
-              <Text className='text-black text-sm mx-1'>{item.creator_name} </Text>
-            </View>
-            <View className='flex-row items-center'>
-              <Text className='text-black text-sm mx-1'>{item.like_count} </Text>
-            </View>
-          </View>
-        </Pressable>
-      )}
-    >
-    </FlatList>
+    <FlatList 
+    data={posts}
+    numColumns={2}
+    columnWrapperStyle={{ gap: 5 }}
+    contentContainerStyle={{ gap: 4 }}
+    keyExtractor={(item) => item.$id}
+    renderItem={({ item }) => {
+      const isLiked = likedPosts.includes(item.$id);
+      return (
+        <PostGridItem 
+          item={item}
+          isLiked={isLiked}
+          onLikeChange={handleLikeChange}
+        />
+      );
+    }}
+  />
   )
 }
 

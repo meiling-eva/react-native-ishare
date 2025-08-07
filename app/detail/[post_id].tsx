@@ -143,6 +143,7 @@ const Detail = () => {
           />
           <Text className='text-lg font-semibold mt-2 mx-2'>{post?.title}</Text>
           <Text className='text-sm text-gray-500 mt-2 mx-2'>{post?.content} </Text>
+          
         </View>
         {/* third row */}
         <View className='flex-row items-center justify-between mx-4 my-8 gap-2'>

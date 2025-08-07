@@ -1,0 +1,90 @@
+import { useGlobalContext } from '@/context/GlobalContext';
+import { handleLikeRefChange } from '@/lib/appwrite';
+import { router } from 'expo-router';
+import LottieView from 'lottie-react-native';
+import React, { useRef } from 'react';
+import { Image, Pressable, Text, View } from 'react-native';
+
+interface PostGridItemProps {
+  item: any;
+  isLiked: boolean;
+  onLikeChange: (postId: string, isLiked: boolean) => void;
+}
+
+const PostGridItem: React.FC<PostGridItemProps> = ({ item, isLiked, onLikeChange }) => {
+  const { user, refreshLikePost, refreshLikePostCnt } = useGlobalContext();
+  const likeRef = useRef<LottieView | null>(null);
+
+  const handleLikePress = async (postId: string, like_count: number) => {
+    await handleLikeRefChange(postId, user?.user_id as string, isLiked);
+    
+    if (isLiked) {
+      // Play animation from frame 66 to 19 (unlike animation)           
+      likeRef.current?.play(66, 19);
+      onLikeChange(postId, false);
+    } else {
+      // Play animation from frame 19 to 66 (like animation)
+      likeRef.current?.play(19, 66);
+      onLikeChange(postId, true);
+    }
+    refreshLikePost();
+  };
+
+  return (
+    <Pressable 
+      className='flex-1 flex-col rounded-sm mt-1'
+      onPress={() => {
+        router.push(`/detail/${item?.$id}`);
+      }}
+    >
+      <Image 
+        source={{ uri: item.image }}
+        style={{
+          width: '100%',
+          height: 200,
+          maxHeight: 270,
+          aspectRatio: 1,
+          resizeMode: 'cover',
+          borderRadius: 4
+        }} 
+      />
+      <View className='flex-row items-center justify-between my-1'>
+        <Text className='text-black text-lg mt-2 font-bold'>{item.title}</Text>
+      </View>
+      <View className='flex-row items-center justify-between'>
+        <View className='flex-row items-center'>
+          <Image
+            source={{ uri: item.creator_avatar_url }}
+            className='w-5 h-5 rounded-full' 
+          />
+          <Text className='text-black text-sm mx-1'>{item.creator_name}</Text>
+        </View>
+        
+        <View className='flex-row items-center'>
+          <Pressable onPress={() => handleLikePress(item.$id, item.like_count)}>
+            <LottieView
+              ref={(ref) => {
+                likeRef.current = ref;
+                // Set initial animation state immediately when ref is set
+                if (ref && isLiked) {
+                  ref.play(66, 66);
+                } else if (ref && !isLiked) {
+                  ref.play(19, 19);
+                }
+              }}
+              source={require('@/assets/lottie/like.json')}
+              autoPlay={false}
+              loop={false}
+              style={{ width: 35, height: 35 }}
+            />
+          </Pressable>
+          <Text className='text-black text-sm'>
+            {item.like_count > 0 ? item.like_count : ''}
+          </Text>
+        </View>
+      </View>
+    </Pressable>
+  );
+};
+
+export default PostGridItem; 

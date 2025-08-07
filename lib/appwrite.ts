@@ -259,7 +259,6 @@ export const getPosts = async (pageNumber: number, pageSize: number, user_ids?: 
     if(post_ids && post_ids.length > 0){
       queries.push(Query.equal('$id', post_ids))
     }
-
     const posts = await database.listDocuments(databaseId, collectionIdPost, queries)
     return posts.documents
   } catch (error) {
@@ -268,7 +267,18 @@ export const getPosts = async (pageNumber: number, pageSize: number, user_ids?: 
   }
 }
 
-export const likePost = async (post_id: string) => {
+export const handleLikeRefChange = async (post_id: string, user_id: string, isLiked: boolean) => {
+  if(isLiked){
+    await unlikePostByUserId(post_id, user_id)
+    await unlikePost(post_id);
+  }
+  else{
+    await likePostByUserId(post_id, user_id)
+    await likePost(post_id);
+  }
+}
+
+const likePost = async (post_id: string) => {
   try{
     // First get the current post to check the like_count
     const currentPost = await database.getDocument(databaseId, collectionIdPost, post_id)
@@ -284,12 +294,11 @@ export const likePost = async (post_id: string) => {
   }
 }
 
-export const unlikePost = async (post_id: string) => {
+const unlikePost = async (post_id: string) => {
   try{
     // First get the current post to check the like_count
     const currentPost = await database.getDocument(databaseId, collectionIdPost, post_id)
     const currentLikeCount = parseInt(currentPost.like_count) || 0
-    //console.log("unlikePost currentLikeCount", currentLikeCount)
     const res = await database.updateDocument(databaseId, collectionIdPost, post_id, {
       like_count: Math.max(0, currentLikeCount - 1)
     })
@@ -315,8 +324,21 @@ export const getLikedPost = async (user_id: string) => {
   }
 }
 
-export const likePostByUserId = async (post_id: string, user_id: string) => {
+
+const likePostByUserId = async (post_id: string, user_id: string) => {
   try{
+    // Check if like already exists to prevent duplicates
+    const existingLike = await database.listDocuments(databaseId, collectionIdLikePost, [
+      Query.equal('post_id', post_id), 
+      Query.equal('user_id', user_id)
+    ])
+    
+    if(existingLike.documents.length > 0){
+      // Like already exists, return the existing one
+      return existingLike.documents[0]
+    }
+    
+    // Create new like if it doesn't exist
     const like = await database.createDocument(databaseId, collectionIdLikePost, ID.unique(), {
       post_id: post_id,
       user_id: user_id
@@ -329,13 +351,21 @@ export const likePostByUserId = async (post_id: string, user_id: string) => {
   }
 }
 
-export const unlikePostByUserId = async (post_id: string, user_id: string) => { 
+const unlikePostByUserId = async (post_id: string, user_id: string) => { 
   try{
-    const like = await database.listDocuments(databaseId, collectionIdLikePost, [Query.equal('post_id', post_id), Query.equal('user_id', user_id)])
-    //console.log("unlikePostByUserId like", like)
+    const like = await database.listDocuments(databaseId, collectionIdLikePost, [
+      Query.equal('post_id', post_id), 
+      Query.equal('user_id', user_id)
+    ])
+    
     if(like.documents.length > 0){
-      const deleteLike = await database.deleteDocument(databaseId, collectionIdLikePost, like.documents[0].$id)
-      return deleteLike
+      // Delete all like records for this user and post (in case of duplicates)
+      const deletePromises = like.documents.map(doc => 
+        database.deleteDocument(databaseId, collectionIdLikePost, doc.$id)
+      )
+      await Promise.all(deletePromises)
+      //console.log(`Deleted ${like.documents.length} like record(s) for post ${post_id} and user ${user_id}`)
+      return like.documents[0] // Return the first one for compatibility
     }
     return null
   }
@@ -344,6 +374,7 @@ export const unlikePostByUserId = async (post_id: string, user_id: string) => {
     throw error
   }
 }
+
 
 //comment
 export const createComment = async (post_id: string, from_user_id: string, user_name: string, user_avatar_url: string, content: string) => {

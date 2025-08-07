@@ -1,8 +1,8 @@
+import PostGridItem from '@/components/PostGridItem';
 import { useGlobalContext } from '@/context/GlobalContext';
-import { getFollowingUsers, getPosts } from '@/lib/appwrite';
-import { router } from 'expo-router';
+import { getFollowingUsers, getLikedPost, getPosts } from '@/lib/appwrite';
 import React, { useEffect, useState } from 'react';
-import { FlatList, Image, Pressable, Text, View } from 'react-native';
+import { FlatList, Text, View } from 'react-native';
 
 const Index_follow = () => {
   const {user} = useGlobalContext();
@@ -11,6 +11,22 @@ const Index_follow = () => {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [followingUser, setFollowingUser] = useState<string[]>([]);
+  const [likedPosts, setLikedPosts] = useState<string[]>([]);
+
+  const getLikedPosts = async () => {
+    let likedPostRecords = await getLikedPost(user?.user_id as string);
+    // Extract post_id from like documents
+    const postIds = likedPostRecords.map(record => record.post_id);
+    setLikedPosts(postIds);
+  }
+
+  const handleLikeChange = (postId: string, isLiked: boolean) => {
+    if (isLiked) {
+      setLikedPosts(prev => [...prev, postId]);
+    } else {
+      setLikedPosts(prev => prev.filter(id => id !== postId));
+    }
+  };
 
   const fetchPosts = async (isRefresh = false) => {
     if (loading || !user?.user_id) return;
@@ -39,41 +55,41 @@ const Index_follow = () => {
     fetchPosts(true);
   }, [refreshPostsCnt, user, refreshFollowingUserCnt]);
 
+  if (loading) {
+    return (
+      <View className="flex-1 justify-center items-center">
+        <Text className="text-black text-lg">Loading follower's posts...</Text>
+      </View>
+    );
+  }
+
+  if (posts.length === 0) {
+    return (
+      <View className="flex-1 justify-center items-center">
+        <Text className="text-black text-lg">No posts found</Text>
+      </View>
+    );
+  }
+
   return (
-    <FlatList data={posts} 
+    <FlatList 
+    data={posts}
     numColumns={2}
-    columnWrapperStyle={{ gap: 4 }}
+    columnWrapperStyle={{ gap: 5 }}
     contentContainerStyle={{ gap: 4 }}
     keyExtractor={(item) => item.$id}
-    renderItem={({ item }) => (
-      <Pressable className='flex-1 flex-col rounded-sm mt-1'
-      onPress={() => {
-        router.push(`/detail/${item?.$id}`);
-      }}
-      >
-        <Image source={{ uri: item.image }} 
-        style={{ 
-          width: '100%',
-          height: 200,
-          maxHeight: 270,
-          aspectRatio: 1,
-          resizeMode: 'cover',
-          borderRadius: 4
-          }} />
-        <Text className='text-black text-md mt-2 my-2'>{item.title} </Text>
-        <View className='flex-row items-center'>
-            <Image
-              source={{ uri: item.creator_avatar_url }}
-              className='w-5 h-5 rounded-full' />
-            <Text className='text-black text-sm mx-1'>{item.creator_name} </Text>
-            <View className='flex-row items-center'>
-            <Text className='text-black text-sm mx-1'>{item.like_count} </Text>
-            </View>
-          </View>
-      </Pressable>
-    )}    
-    >
-    </FlatList>
+    renderItem={({ item }) => {
+      const isLiked = likedPosts.includes(item.$id);
+      return (
+        <PostGridItem 
+          item={item}
+          isLiked={isLiked}
+          onLikeChange={handleLikeChange}
+        />
+      );
+    }}
+    />
+    
   )
 }
 
