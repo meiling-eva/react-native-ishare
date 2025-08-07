@@ -14,12 +14,18 @@ const profile_user = () => {
   //const [userData, setUserData] = useState<any>(null)
 
   const handleSignOut = async () => {
-    await logout()
-    router.push('/(auth)/sign_in')
-    refreshUser()
+    try {
+      await logout()
+      // Clear user data immediately to prevent API calls
+      refreshUser()
+      router.push('/(auth)/sign_in')
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Even if logout fails, clear user data and redirect
+      refreshUser()
+      router.push('/(auth)/sign_in')
+    }
   }
-
- 
 
   useEffect(() => {
     //getUser();

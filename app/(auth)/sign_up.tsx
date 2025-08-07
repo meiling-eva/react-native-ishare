@@ -48,14 +48,14 @@ const sign_up = () => {
           value={password}
           onChangeText={setPassword}
           className='border-2 border-gray-300 rounded-md p-2 mt-6 h-12'
-          secureTextEntry={false}
+          secureTextEntry={true}
         />
         <TextInput
           placeholder='Confirm Password'
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           className='border-2 border-gray-300 rounded-md p-2 mt-6 h-12'
-          secureTextEntry={false}
+          secureTextEntry={true}
         />
         <Pressable
           className='bg-blue-500 rounded-md p-2 mt-6 h-12'

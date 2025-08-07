@@ -20,6 +20,9 @@ const Index_all = () => {
     }
     catch (error) {
       console.log("fetchPosts error", error);
+      // If we get an authorization error, it means user is not authenticated
+      // This is expected behavior when user is not logged in
+      setPosts([]);
     }
     // finally {
     //   setLoading(false);
@@ -27,10 +30,21 @@ const Index_all = () => {
   }
 
   const getLikedPosts = async () => {
-    let likedPostRecords = await getLikedPost(user?.user_id as string);
-    // Extract post_id from like documents
-    const postIds = likedPostRecords.map(record => record.post_id);
-    setLikedPosts(postIds);
+    // Only fetch liked posts if user is authenticated
+    if (!user?.user_id || user.user_id.trim() === '') {
+      setLikedPosts([]);
+      return;
+    }
+    
+    try {
+      let likedPostRecords = await getLikedPost(user.user_id);
+      // Extract post_id from like documents
+      const postIds = likedPostRecords.map(record => record.post_id);
+      setLikedPosts(postIds);
+    } catch (error) {
+      console.log("getLikedPosts error", error);
+      setLikedPosts([]);
+    }
   }
 
   const handleLikeChange = (postId: string, isLiked: boolean) => {
@@ -42,9 +56,16 @@ const Index_all = () => {
   };
 
   useEffect(() => {
-    fetchPosts(true);
-    getLikedPosts();
-  }, [refreshPostsCnt, refreshLikePost]);
+    // Only fetch data if user is authenticated (has a valid user_id)
+    if (user?.user_id && user.user_id.trim() !== '') {
+      fetchPosts(true);
+      getLikedPosts();
+    } else {
+      // Clear data when user is not authenticated
+      setPosts([]);
+      setLikedPosts([]);
+    }
+  }, [refreshPostsCnt, refreshLikePost, user?.user_id]);
 
   // if (loading) {
   //   return (
@@ -53,6 +74,14 @@ const Index_all = () => {
   //     </View>
   //   );
   // }
+
+  if (!user?.user_id || user.user_id.trim() === '') {
+    return (
+      <View className="flex-1 justify-center items-center">
+        <Text className="text-black text-lg">Please sign in to view posts</Text>
+      </View>
+    );
+  }
 
   if (posts.length === 0) {
     return (
@@ -66,7 +95,7 @@ const Index_all = () => {
     <FlatList 
       data={posts}
       numColumns={2}
-      columnWrapperStyle={{ gap: 5 }}
+      columnWrapperStyle={{ gap: 4 }}
       contentContainerStyle={{ gap: 4 }}
       keyExtractor={(item) => item.$id}
       renderItem={({ item }) => {

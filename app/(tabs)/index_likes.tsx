@@ -13,9 +13,10 @@ const Index_likes = () => {
   const pageSize = 200;
   const [loading, setLoading] = useState(false);
   const [likedPosts, setLikedPosts] = useState<any[]>([]);
+  const [likedPostIds, setLikedPostIds] = useState<string[]>([]);
 
   const fetchPosts = async () => {
-    if (loading || !user?.user_id) return;
+    if (!user?.user_id) return;
     setLoading(true);
     try {
       let likedPostRecords;
@@ -31,23 +32,45 @@ const Index_likes = () => {
       );
       const actualPosts = await Promise.all(postPromises);
       setLikedPosts(actualPosts);
+      
+      // Extract post IDs for like state tracking
+      const postIds = likedPostRecords.map(record => record.post_id);
+      setLikedPostIds(postIds);
     } catch (error) {
       console.error("Error fetching liked posts:", error);
-    } finally {
+    } 
+    finally {
       setLoading(false);
     }
   }
 
   const handleLikeChange = (postId: string, isLiked: boolean) => {
+   // console.log(`handleLikeChange called: postId=${postId}, isLiked=${isLiked}`);
     if (isLiked) {
-      setLikedPosts(prev => [...prev, postId]);
+      setLikedPostIds(prev => {
+        const newIds = [...prev, postId];
+        //console.log('Adding post to likedPostIds:', newIds);
+        return newIds;
+      });
     } else {
-      setLikedPosts(prev => prev.filter(id => id !== postId));
+      setLikedPostIds(prev => {
+        const newIds = prev.filter(id => id !== postId);
+        //console.log('Removing post from likedPostIds:', newIds);
+        return newIds;
+      });
+      // Also remove from likedPosts array
+      setLikedPosts(prev => prev.filter(post => post.$id !== postId));
     }
   };
 
   useEffect(() => {
-    fetchPosts();
+    if(user?.user_id && user.user_id.trim() !== ''){
+      fetchPosts();
+    }
+    else{
+      setLikedPosts([]);
+      setLikedPostIds([]);
+    }
   }, [refreshPostsCnt, user, creator_id, refreshLikePost]);
 
   if (loading) {
@@ -70,11 +93,12 @@ const Index_likes = () => {
     <FlatList 
       data={likedPosts}
       numColumns={2}
-      columnWrapperStyle={{ gap: 5 }}
+      columnWrapperStyle={{ gap: 4 }}
       contentContainerStyle={{ gap: 4 }}
       keyExtractor={(item) => item.$id}
       renderItem={({ item }) => {
-        const isLiked = likedPosts.includes(item.$id);
+        const isLiked = likedPostIds.includes(item.$id);
+        //console.log(`Post ${item.$id} isLiked: ${isLiked}, likedPostIds:`, likedPostIds);
         return (
           <PostGridItem 
             item={item}

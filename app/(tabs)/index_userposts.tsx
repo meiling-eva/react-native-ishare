@@ -38,10 +38,21 @@ const Index_userposts = () => {
   }
 
   const getLikedPosts = async () => {
-    let likedPostRecords = await getLikedPost(user?.user_id as string);
-    // Extract post_id from like documents
-    const postIds = likedPostRecords.map(record => record.post_id);
-    setLikedPosts(postIds);
+    // Only fetch liked posts if user is authenticated
+    if (!user?.user_id || user.user_id.trim() === '') {
+      setLikedPosts([]);
+      return;
+    }
+    
+    try {
+      let likedPostRecords = await getLikedPost(user.user_id);
+      // Extract post_id from like documents
+      const postIds = likedPostRecords.map(record => record.post_id);
+      setLikedPosts(postIds);
+    } catch (error) {
+      console.log("getLikedPosts error", error);
+      setLikedPosts([]);
+    }
   }
 
   const handleLikeChange = (postId: string, isLiked: boolean) => {
@@ -53,13 +64,29 @@ const Index_userposts = () => {
   };
 
   useEffect(() => {
-    fetchPosts(true);
+    // Only fetch data if user is authenticated (has a valid user_id)
+    if (user?.user_id && user.user_id.trim() !== '') {
+      fetchPosts(true);
+      getLikedPosts();
+    } else {
+      // Clear data when user is not authenticated
+      setPosts([]);
+      setLikedPosts([]);
+    }
   }, [refreshPostsCnt, user, creator_id, refreshLikePost]);
 
   if (loading) {
     return (
       <View className="flex-1 justify-center items-center">
         <Text className="text-black text-lg">Loading posts...</Text>
+      </View>
+    );
+  }
+
+  if (!user?.user_id || user.user_id.trim() === '') {
+    return (
+      <View className="flex-1 justify-center items-center">
+        <Text className="text-black text-lg">Please sign in to view posts</Text>
       </View>
     );
   }
@@ -76,7 +103,7 @@ const Index_userposts = () => {
     <FlatList 
     data={posts}
     numColumns={2}
-    columnWrapperStyle={{ gap: 5 }}
+    columnWrapperStyle={{ gap: 4 }}
     contentContainerStyle={{ gap: 4 }}
     keyExtractor={(item) => item.$id}
     renderItem={({ item }) => {
