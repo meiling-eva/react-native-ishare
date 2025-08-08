@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
 const Index_likes = () => {
-  const { user } = useGlobalContext();
+  const { user, updatedPosts } = useGlobalContext();
   const { user_id } = useLocalSearchParams();
   const creator_id = user_id;
   const { refreshPostsCnt, refreshLikePost } = useGlobalContext();
@@ -72,6 +72,16 @@ const Index_likes = () => {
       setLikedPostIds([]);
     }
   }, [refreshPostsCnt, user, creator_id, refreshLikePost]);
+
+  // Listen for global post updates
+  useEffect(() => {
+    if (updatedPosts.size > 0) {
+      setLikedPosts(prev => prev.map(post => {
+        const updatedPost = updatedPosts.get(post.$id);
+        return updatedPost || post;
+      }));
+    }
+  }, [updatedPosts]);
 
   if (loading) {
     return (

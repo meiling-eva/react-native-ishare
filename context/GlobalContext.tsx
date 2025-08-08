@@ -17,6 +17,9 @@ type GlobalContextType = {
     openSideMenu: () => void
     closeSideMenu: () => void
     toggleSideMenu: () => void
+    // Global post updates
+    updatePost: (postId: string, updatedPost: any) => void
+    updatedPosts: Map<string, any>
 }
 
 const GlobalContext = createContext<GlobalContextType>({
@@ -41,7 +44,10 @@ const GlobalContext = createContext<GlobalContextType>({
     isSideMenuVisible: false,
     openSideMenu: () => { },
     closeSideMenu: () => { },
-    toggleSideMenu: () => { }
+    toggleSideMenu: () => { },
+    // Global post updates
+    updatePost: () => { },
+    updatedPosts: new Map()
 })
 
 export const useGlobalContext = () => {
@@ -68,6 +74,13 @@ export const GlobalContextProvider = ({ children }: { children: React.ReactNode 
 
     // Side menu state
     const [isSideMenuVisible, setIsSideMenuVisible] = useState(false)
+
+    // Global post updates state
+    const [updatedPosts, setUpdatedPosts] = useState<Map<string, any>>(new Map())
+
+    const updatePost = (postId: string, updatedPost: any) => {
+        setUpdatedPosts(prev => new Map(prev).set(postId, updatedPost))
+    }
 
     const openSideMenu = () => {
         setIsSideMenuVisible(true)
@@ -130,7 +143,10 @@ export const GlobalContextProvider = ({ children }: { children: React.ReactNode 
                 isSideMenuVisible,
                 openSideMenu,
                 closeSideMenu,
-                toggleSideMenu
+                toggleSideMenu,
+                // Global post updates
+                updatePost,
+                updatedPosts
             }
         }
         >

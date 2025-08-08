@@ -5,14 +5,14 @@ import React, { useEffect, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
 const Index_all = () => {
-  const { user, refreshPostsCnt, refreshLikePost } = useGlobalContext();
+  const { user, refreshPostsCnt, refreshLikePost, updatedPosts } = useGlobalContext();
   const pageSize = 200;
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [likedPosts, setLikedPosts] = useState<string[]>([]);
 
   const fetchPosts = async (isRefresh = false) => {
-    //if (loading) return;
+    if (loading) return;
     setLoading(true);
     try {
       const posts = await getPosts(0, pageSize);
@@ -24,9 +24,9 @@ const Index_all = () => {
       // This is expected behavior when user is not logged in
       setPosts([]);
     }
-    // finally {
-    //   setLoading(false);
-    // }
+    finally {
+      setLoading(false);
+    }
   }
 
   const getLikedPosts = async () => {
@@ -35,7 +35,7 @@ const Index_all = () => {
       setLikedPosts([]);
       return;
     }
-    
+
     try {
       let likedPostRecords = await getLikedPost(user.user_id);
       // Extract post_id from like documents
@@ -55,25 +55,45 @@ const Index_all = () => {
     }
   };
 
+
+
+  // Fetch posts only when posts need to be refreshed
   useEffect(() => {
     // Only fetch data if user is authenticated (has a valid user_id)
     if (user?.user_id && user.user_id.trim() !== '') {
       fetchPosts(true);
-      getLikedPosts();
     } else {
       // Clear data when user is not authenticated
       setPosts([]);
+    }
+  }, [refreshPostsCnt, user?.user_id]);
+
+  // Fetch liked posts separately (no loading state for this)
+  useEffect(() => {
+    if (user?.user_id && user.user_id.trim() !== '') {
+      getLikedPosts();
+    } else {
       setLikedPosts([]);
     }
-  }, [refreshPostsCnt, refreshLikePost, user?.user_id]);
+  }, [refreshLikePost, user?.user_id]);
 
-  // if (loading) {
-  //   return (
-  //     <View className="flex-1 justify-center items-center">
-  //       <Text className="text-black text-lg">Loading posts...</Text>
-  //     </View>
-  //   );
-  // }
+  // Listen for global post updates
+  useEffect(() => {
+    if (updatedPosts.size > 0) {
+      setPosts(prev => prev.map(post => {
+        const updatedPost = updatedPosts.get(post.$id);
+        return updatedPost || post;
+      }));
+    }
+  }, [updatedPosts]);
+
+  if (loading) {
+    return (
+      <View className="flex-1 justify-center items-center">
+        <Text className="text-black text-lg">Loading posts...</Text>
+      </View>
+    );
+  }
 
   if (!user?.user_id || user.user_id.trim() === '') {
     return (
@@ -92,7 +112,7 @@ const Index_all = () => {
   }
 
   return (
-    <FlatList 
+    <FlatList
       data={posts}
       numColumns={2}
       columnWrapperStyle={{ gap: 4 }}
@@ -101,7 +121,7 @@ const Index_all = () => {
       renderItem={({ item }) => {
         const isLiked = likedPosts.includes(item.$id);
         return (
-          <PostGridItem 
+          <PostGridItem
             item={item}
             isLiked={isLiked}
             onLikeChange={handleLikeChange}

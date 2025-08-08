@@ -313,9 +313,7 @@ const unlikePost = async (post_id: string) => {
 //likePostByUserId
 export const getLikedPost = async (user_id: string) => {
   try{
-    //console.log("getLikedPost user_id", user_id)
     const posts = await database.listDocuments(databaseId, collectionIdLikePost, [Query.equal('user_id', user_id), Query.orderDesc('$createdAt')])
-   //console.log(" app getLikedPost posts:", posts)
     return posts.documents
   }
   catch(error){

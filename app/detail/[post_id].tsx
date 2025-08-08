@@ -20,7 +20,7 @@ const Detail = () => {
   let isUserSelf = false
 
   const getData = async () => {
-    setLoading(true);
+   // setLoading(true);
     try {
       const post = await getPostById(post_id as string);
       if (!post) {
@@ -53,9 +53,10 @@ const Detail = () => {
       setComments(comments || [])
     } catch (error) {
       console.log("getData error", error);
-    } finally {
-      setLoading(false);
-    }
+    } 
+    // finally {
+    //   setLoading(false);
+    // }
   }
 
   const handleFollow = async () => {

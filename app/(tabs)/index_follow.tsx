@@ -5,7 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
 const Index_follow = () => {
-  const {user, refreshLikePost} = useGlobalContext();
+  const {user, refreshLikePost, updatedPosts} = useGlobalContext();
   const {refreshPostsCnt, refreshFollowingUserCnt} = useGlobalContext();
   const pageSize = 200;
   const [posts, setPosts] = useState<any[]>([]);
@@ -39,9 +39,11 @@ const Index_follow = () => {
     }
   };
 
+
+
   const fetchPosts = async (isRefresh = false) => {
     if (loading || !user?.user_id) return;
-    setLoading(true);
+    //setLoading(true);
 
     let followingUser = await getFollowingUsers(user?.user_id as string);
     setFollowingUser(followingUser);
@@ -57,22 +59,40 @@ const Index_follow = () => {
     catch (error) {
       console.log("fetchPosts error", error);
     }
-    finally {
-      setLoading(false);
-    }
+    // finally {
+    //   setLoading(false);
+    // }
   }
 
+  // Fetch posts only when posts need to be refreshed
   useEffect(() => {
     // Only fetch data if user is authenticated (has a valid user_id)
     if (user?.user_id && user.user_id.trim() !== '') {
       fetchPosts(true);
-      getLikedPosts();
     } else {
       // Clear data when user is not authenticated
       setPosts([]);
+    }
+  }, [refreshPostsCnt, user, refreshFollowingUserCnt]);
+
+  // Fetch liked posts separately (no loading state for this)
+  useEffect(() => {
+    if (user?.user_id && user.user_id.trim() !== '') {
+      getLikedPosts();
+    } else {
       setLikedPosts([]);
     }
-  }, [refreshPostsCnt, user, refreshFollowingUserCnt, refreshLikePost]);
+  }, [refreshLikePost, user?.user_id]);
+
+  // Listen for global post updates
+  useEffect(() => {
+    if (updatedPosts.size > 0) {
+      setPosts(prev => prev.map(post => {
+        const updatedPost = updatedPosts.get(post.$id);
+        return updatedPost || post;
+      }));
+    }
+  }, [updatedPosts]);
 
   if (loading) {
     return (

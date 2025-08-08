@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
 const Index_userposts = () => {
-  const { user } = useGlobalContext();
+  const { user, updatedPosts } = useGlobalContext();
   const { refreshPostsCnt, refreshFollowingUser, refreshLikePost } = useGlobalContext();
   const { user_id } = useLocalSearchParams();
   const creator_id = user_id;
@@ -63,17 +63,37 @@ const Index_userposts = () => {
     }
   };
 
+
+
+  // Fetch posts only when posts need to be refreshed
   useEffect(() => {
     // Only fetch data if user is authenticated (has a valid user_id)
     if (user?.user_id && user.user_id.trim() !== '') {
       fetchPosts(true);
-      getLikedPosts();
     } else {
       // Clear data when user is not authenticated
       setPosts([]);
+    }
+  }, [refreshPostsCnt, user, creator_id]);
+
+  // Fetch liked posts separately (no loading state for this)
+  useEffect(() => {
+    if (user?.user_id && user.user_id.trim() !== '') {
+      getLikedPosts();
+    } else {
       setLikedPosts([]);
     }
-  }, [refreshPostsCnt, user, creator_id, refreshLikePost]);
+  }, [refreshLikePost, user?.user_id]);
+
+  // Listen for global post updates
+  useEffect(() => {
+    if (updatedPosts.size > 0) {
+      setPosts(prev => prev.map(post => {
+        const updatedPost = updatedPosts.get(post.$id);
+        return updatedPost || post;
+      }));
+    }
+  }, [updatedPosts]);
 
   if (loading) {
     return (

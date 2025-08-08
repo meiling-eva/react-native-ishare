@@ -1,5 +1,5 @@
 import { useGlobalContext } from '@/context/GlobalContext';
-import { handleLikeRefChange } from '@/lib/appwrite';
+import { getPostById, handleLikeRefChange } from '@/lib/appwrite';
 import { router } from 'expo-router';
 import LottieView from 'lottie-react-native';
 import React, { useRef } from 'react';
@@ -12,7 +12,7 @@ interface PostGridItemProps {
 }
 
 const PostGridItem: React.FC<PostGridItemProps> = ({ item, isLiked, onLikeChange }) => {
-  const { user, refreshLikePost, refreshLikePostCnt } = useGlobalContext();
+  const { user, refreshLikePost, refreshLikePostCnt, updatePost } = useGlobalContext();
   const likeRef = useRef<LottieView | null>(null);
 
   const handleLikePress = async (postId: string, like_count: number) => {
@@ -27,6 +27,15 @@ const PostGridItem: React.FC<PostGridItemProps> = ({ item, isLiked, onLikeChange
       likeRef.current?.play(19, 66);
       onLikeChange(postId, true);
     }
+    
+    // Refresh the post data to get updated like_count
+    try {
+      const updatedPost = await getPostById(postId);
+      updatePost(postId, updatedPost);
+    } catch (error) {
+      console.log('Error refreshing post data:', error);
+    }
+    
     refreshLikePost();
   };
 
@@ -51,13 +60,15 @@ const PostGridItem: React.FC<PostGridItemProps> = ({ item, isLiked, onLikeChange
       <View className='flex-row items-center justify-between my-1'>
         <Text className='text-black text-lg mt-2 font-bold'>{item.title}</Text>
       </View>
-      <View className='flex-row items-center justify-between'>
-        <View className='flex-row items-center'>
+      <View className='flex-row items-center'>
+        <View className='flex-row items-center flex-1'>
           <Image
             source={{ uri: item.creator_avatar_url }}
             className='w-5 h-5 rounded-full' 
           />
-          <Text className='text-black text-sm mx-1'>{item.creator_name}</Text>
+          <Text className='text-black text-sm mx-1 flex-1' numberOfLines={1} ellipsizeMode="tail">
+            {item.creator_name}
+          </Text>
         </View>
         
         <View className='flex-row items-center'>
@@ -78,7 +89,7 @@ const PostGridItem: React.FC<PostGridItemProps> = ({ item, isLiked, onLikeChange
               style={{ width: 35, height: 35 }}
             />
           </Pressable>
-          <Text className='text-black text-sm'>
+          <Text className='text-black text-sm ml-1'>
             {item.like_count > 0 ? item.like_count : ''}
           </Text>
         </View>
