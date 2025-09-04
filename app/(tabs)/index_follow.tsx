@@ -118,14 +118,24 @@ const Index_follow = () => {
     );
   }
 
+  // Add placeholder item if odd number of posts to maintain two-column layout
+  const dataWithPlaceholder = posts.length % 2 === 1 
+    ? [...posts, { $id: 'placeholder', isPlaceholder: true }]
+    : posts;
+
   return (
     <FlatList 
-    data={posts}
+    data={dataWithPlaceholder}
     numColumns={2}
     columnWrapperStyle={{ gap: 4}}
     contentContainerStyle={{ gap: 4 }}
     keyExtractor={(item) => item.$id}
     renderItem={({ item }) => {
+      // Render placeholder for odd number of posts
+      if (item.isPlaceholder) {
+        return <View className="flex-1" />;
+      }
+      
       const isLiked = likedPosts.includes(item.$id);
       return (
         <PostGridItem 

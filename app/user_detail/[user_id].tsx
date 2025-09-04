@@ -12,7 +12,7 @@ const Tab = createMaterialTopTabNavigator();
 const UserDetail = () => {
     const { user_id } = useLocalSearchParams();
     const creator_id = user_id;
-    const { user, refreshFollowingUser } = useGlobalContext()
+    const { user, refreshFollowingUser, refreshUser } = useGlobalContext()
     const [creator, setCreator] = useState<any>(null);
     const [isFollowed, setIsFollowed] = useState(false);
 
@@ -31,6 +31,8 @@ const UserDetail = () => {
         await handleFollowButton(user?.user_id as string, creator_id as string, isFollowed)
         setIsFollowed(!isFollowed);
         refreshFollowingUser()
+        // Refresh user data to update follower/following counts
+        refreshUser()
     }
 
     useEffect(() => {

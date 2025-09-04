@@ -1,5 +1,5 @@
 import { useGlobalContext } from '@/context/GlobalContext';
-import { getPostById, handleLikeRefChange } from '@/lib/appwrite';
+import { getFirstMedia, getPostById, handleLikeRefChange } from '@/lib/appwrite';
 import { router } from 'expo-router';
 import LottieView from 'lottie-react-native';
 import React, { useRef } from 'react';
@@ -46,17 +46,59 @@ const PostGridItem: React.FC<PostGridItemProps> = ({ item, isLiked, onLikeChange
         router.push(`/detail/${item?.$id}`);
       }}
     >
-      <Image 
-        source={{ uri: item.image }}
-        style={{
-          width: '100%',
-          height: 200,
-          maxHeight: 270,
-          aspectRatio: 1,
-          resizeMode: 'cover',
-          borderRadius: 4
-        }} 
-      />
+      {(() => {
+        const media = item.media && Array.isArray(item.media) ? item.media : [];
+        const mediaType = item.mediaType || 'images';
+        const firstMedia = media.length > 0 ? media[0] : getFirstMedia(item);
+        
+        if (firstMedia) {
+          if (mediaType === 'video') {
+            return (
+              <View className='w-full h-[200px] bg-gray-200 rounded-lg items-center justify-center'>
+                <Text className='text-lg font-bold text-gray-600'>🎥 Video</Text>
+                <Text className='text-sm text-gray-500 mt-1'>Tap to play</Text>
+              </View>
+            );
+          } else if (media.length > 1) {
+            return (
+              <View className='relative w-full h-[200px] rounded-lg overflow-hidden'>
+                <Image 
+                  source={{ uri: firstMedia }}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    resizeMode: 'cover',
+                    borderRadius: 4
+                  }} 
+                />
+                <View className='absolute top-2 right-2 bg-black bg-opacity-70 px-2 py-1 rounded-lg'>
+                  <Text className='text-white text-xs font-bold'>+{media.length - 1}</Text>
+                </View>
+              </View>
+            );
+          } else {
+            return (
+              <Image 
+                source={{ uri: firstMedia }}
+                style={{
+                  width: '100%',
+                  height: 200,
+                  maxHeight: 270,
+                  aspectRatio: 1,
+                  resizeMode: 'cover',
+                  borderRadius: 4
+                }} 
+              />
+            );
+          }
+        } else {
+          return (
+            <View className='w-full h-[200px] bg-gray-200 rounded-lg items-center justify-center'>
+              <Text className='text-gray-500'>No media</Text>
+            </View>
+          );
+        }
+      })()}
       <View className='flex-row items-center justify-between my-1'>
         <Text className='text-black text-lg mt-2 font-bold'>{item.title}</Text>
       </View>

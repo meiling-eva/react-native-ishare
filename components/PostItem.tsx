@@ -1,5 +1,5 @@
 import { useGlobalContext } from '@/context/GlobalContext';
-import { handleLikeRefChange } from '@/lib/appwrite';
+import { getFirstMedia, handleLikeRefChange } from '@/lib/appwrite';
 import { router } from 'expo-router';
 import LottieView from 'lottie-react-native';
 import React, { useRef } from 'react';
@@ -65,10 +65,61 @@ const PostItem: React.FC<PostItemProps> = ({
         router.push(`/detail/${item?.$id}`);
       }}
     >
-      <Image 
-        source={{ uri: item.image }}
-        style={imageStyle}
-      />
+      {(() => {
+        const media = item.media && Array.isArray(item.media) ? item.media : [];
+        const mediaType = item.mediaType || 'images';
+        const firstMedia = media.length > 0 ? media[0] : getFirstMedia(item);
+        
+        // Check if firstMedia is a local file URI that can't be displayed
+        const isValidUrl = firstMedia && !firstMedia.startsWith('file://') && 
+                          (firstMedia.startsWith('http') || firstMedia.includes('appwrite.io'));
+        
+        if (firstMedia && isValidUrl) {
+          if (mediaType === 'video') {
+            return (
+              <View style={[imageStyle, { backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' }]}>
+                <Text className='text-lg font-bold text-gray-600'>🎥 Video</Text>
+                <Text className='text-sm text-gray-500 mt-1'>Tap to play</Text>
+              </View>
+            );
+          } else if (media.length > 1) {
+            return (
+              <View style={[imageStyle, { position: 'relative' }]}>
+                <Image 
+                  source={{ uri: firstMedia }}
+                  style={[imageStyle, { position: 'absolute' }]}
+                />
+                <View style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 8
+                }}>
+                  <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+                    +{media.length - 1}
+                  </Text>
+                </View>
+              </View>
+            );
+          } else {
+            return (
+              <Image 
+                source={{ uri: firstMedia }}
+                style={imageStyle}
+              />
+            );
+          }
+        } else {
+          return (
+            <View style={[imageStyle, { backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' }]}>
+              <Text style={{ color: '#6b7280' }}>No media</Text>
+            </View>
+          );
+        }
+      })()}
       
       <View className={layout === 'grid' ? 'flex-row items-center justify-between my-1' : 'flex-1 ml-3'}>
         <Text className='text-black text-lg mt-2 font-bold' numberOfLines={layout === 'grid' ? 1 : 2}>

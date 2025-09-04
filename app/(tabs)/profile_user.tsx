@@ -10,7 +10,7 @@ import Index_userposts from './index_userposts';
 const Tab = createMaterialTopTabNavigator();
 
 const profile_user = () => {
-  const { user, refreshUser, refreshFollowingUser } = useGlobalContext()
+  const { user, refreshUser, refreshFollowingUser, refreshUserCnt } = useGlobalContext()
   //const [userData, setUserData] = useState<any>(null)
 
   const handleSignOut = async () => {
@@ -29,7 +29,7 @@ const profile_user = () => {
 
   useEffect(() => {
     //getUser();
-  }, [refreshFollowingUser])
+  }, [refreshFollowingUser, refreshUserCnt])
 
   return (
     <SafeAreaView className='flex-1'>

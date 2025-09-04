@@ -6,6 +6,7 @@ type GlobalContextType = {
     user: User | null
     setUser: (user: User) => void
     refreshUser: () => void
+    refreshUserCnt: number
     refreshPosts: () => void
     refreshPostsCnt: number
     refreshFollowingUser: () => void
@@ -34,6 +35,7 @@ const GlobalContext = createContext<GlobalContextType>({
     },
     setUser: () => { },
     refreshUser: () => { },
+    refreshUserCnt: 0,
     refreshPosts: () => { },
     refreshPostsCnt: 0,
     refreshFollowingUser: () => { },
@@ -127,6 +129,7 @@ export const GlobalContextProvider = ({ children }: { children: React.ReactNode 
                 refreshUser: () => {
                     setRefreshCnt(prev => prev + 1)
                 },
+                refreshUserCnt: refreshCnt,
                 refreshPosts: () => {
                     setRefreshPostsCnt(prev => prev + 1)
                 },

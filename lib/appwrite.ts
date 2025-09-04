@@ -1,6 +1,14 @@
-import { ImageResult } from 'expo-image-manipulator'
-import { Account, Avatars, Client, Databases, ID, Query, Storage } from 'react-native-appwrite'
-import { User } from './modal'
+import { ImageResult } from 'expo-image-manipulator';
+import { Account, Avatars, Client, Databases, ID, Query, Storage } from 'react-native-appwrite';
+import { User } from './modal';
+
+interface MediaFile {
+  uri: string;
+  type: string;
+  size?: number;
+  height?: number;
+  width?: number;
+}
 const client = new Client()
 client.setEndpoint('https://syd.cloud.appwrite.io/v1')
 client.setProject('686b317000240b0341ba')
@@ -19,17 +27,23 @@ const database = new Databases(client)
 const avatars = new Avatars(client) 
 const storage = new Storage(client)
 
-export const uploadFile = async (image_key:string, file: ImageResult) => {
+export const uploadFile = async (file_key: string, file: ImageResult | MediaFile) => {
   try {
-    const res = await storage.createFile(bucketId, image_key, {
-      name: image_key,
-      type: 'image/jpeg',
-      size: file.height * file.width,
+    // For React Native, we need to create a file input from the URI
+    const res = await storage.createFile(bucketId, file_key, {
+      name: file_key,
+      type: 'type' in file ? file.type : 'image/jpeg',
+      size: 'size' in file ? (file.size || 0) : (file.height && file.width ? file.height * file.width : 0),
       uri: file.uri,
-    })
-    const fileId = res.$id
-    const fileUrl = file.uri.toString()
-    //const fileUrl = storage.getFileView(bucketId, fileId).toString()
+    });
+    
+    const fileId = res.$id;
+    
+    // Get the file URL from Appwrite storage
+    //console.log('file.url', file.uri)
+    const fileUrl = file.uri.toString();
+    //const fileUrl = storage.getFileView(bucketId, fileId).toString();
+    
     return {
       fileId: fileId, 
       fileUrl: fileUrl
@@ -121,12 +135,13 @@ export const getCurrentUser = async () => {
     }
     return null
   } catch (error) {
-    console.log('getCurrentUser error',error)
-    throw error
+    //console.log('getCurrentUser error',error)
+    // Return null instead of throwing error for unauthenticated users
+    return null
   }
 }
 
-export { account, collectionIdUser, database, databaseId }
+export { account, collectionIdUser, database, databaseId };
 
 export const handleFollowButton = async(user_id: string, creator_id: string, isFollowed: boolean) => {
   //if user follow creator, creator's follower count +1, user's following count + 1, follow table entry should be created
@@ -220,12 +235,17 @@ const unFollowCreatorCount = async (user_id: string) => {
 }
 
 //post  
-export const createPost = async (title: string, content: string, image: string, creator_id: string, creator_name: string, creator_avatar_url: string, like_count: number) => {
+export const createPost = async (title: string, content: string, media: string[], mediaType: 'images' | 'video', creator_id: string, creator_name: string, creator_avatar_url: string, like_count: number) => {
   try {
+    if (!Array.isArray(media) || media.length === 0) {
+      throw new Error('Media must be a non-empty array');
+    }
+    
     const post = await database.createDocument(databaseId, collectionIdPost, ID.unique(), {
       title: title,
       content: content,
-      image: image,
+      media: JSON.stringify(media), // Convert array to JSON string for Appwrite
+      mediaType: mediaType,
       creator_id: creator_id,
       creator_name:creator_name,
       creator_avatar_url: creator_avatar_url,
@@ -239,9 +259,63 @@ export const createPost = async (title: string, content: string, image: string, 
   }
 }
 
+// Backward compatibility function for old single image posts
+export const createPostWithImage = async (title: string, content: string, image: string, creator_id: string, creator_name: string, creator_avatar_url: string, like_count: number) => {
+  return createPost(title, content, [image], 'images', creator_id, creator_name, creator_avatar_url, like_count);
+}
+
+// Helper function to get first media item (for backward compatibility)
+export const getFirstMedia = (post: any): string => {
+  if (post.media && Array.isArray(post.media) && post.media.length > 0) {
+    return post.media[0];
+  }
+  return post.image || ''; // Fallback to old image field
+}
+
+// Helper function to safely parse media field
+export const parseMediaField = (post: any): { media: string[], mediaType: string } => {
+  let media: string[] = [];
+  let mediaType: string = 'images';
+  
+  try {
+    if (post.media && typeof post.media === 'string') {
+      // Check if it's already a valid JSON string
+      if (post.media.startsWith('[') && post.media.endsWith(']')) {
+        media = JSON.parse(post.media);
+        mediaType = post.mediaType || 'images';
+      } else {
+        // If it's not JSON, treat it as a single image URL
+        media = [post.media];
+        mediaType = 'images';
+      }
+    } else if (post.image && !post.media) {
+      // Handle backward compatibility for old posts with 'image' field
+      media = [post.image];
+      mediaType = 'images';
+    } else if (Array.isArray(post.media)) {
+      // Already an array
+      media = post.media;
+      mediaType = post.mediaType || 'images';
+    }
+  } catch (parseError) {
+    console.log('Error parsing media field for post:', post.$id, parseError);
+    // If parsing fails, treat as single image
+    media = post.media ? [post.media] : [];
+    mediaType = 'images';
+  }
+  
+  return { media, mediaType };
+}
+
 export const getPostById = async (post_id: string) => {
   try {
     const post = await database.getDocument(databaseId, collectionIdPost, post_id)
+    
+    // Parse media field using helper function
+    const { media, mediaType } = parseMediaField(post);
+    post.media = media;
+    post.mediaType = mediaType;
+    
     return post
   } catch (error) {
     console.log('getPostById error',error)
@@ -260,6 +334,14 @@ export const getPosts = async (pageNumber: number, pageSize: number, user_ids?: 
       queries.push(Query.equal('$id', post_ids))
     }
     const posts = await database.listDocuments(databaseId, collectionIdPost, queries)
+    
+    // Parse media fields using helper function for all posts
+    posts.documents.forEach(post => {
+      const { media, mediaType } = parseMediaField(post);
+      post.media = media;
+      post.mediaType = mediaType;
+    });
+    
     return posts.documents
   } catch (error) {
     console.log('getPosts error', error)
@@ -318,7 +400,8 @@ export const getLikedPost = async (user_id: string) => {
   }
   catch(error){
     console.log("getLikedPost error", error)
-    throw error
+    // Return empty array instead of throwing error to prevent app crashes
+    return []
   }
 }
 

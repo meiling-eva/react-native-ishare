@@ -1,12 +1,13 @@
 import { useGlobalContext } from '@/context/GlobalContext';
 import { createComment, getCommentsByPostId, getFollowingUsers, getPostById, getUserByUserId, handleFollowButton } from '@/lib/appwrite';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Image, Pressable, SafeAreaView, ScrollView, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Alert, Image, Pressable, SafeAreaView, ScrollView, Text, TextInput, View } from 'react-native';
+import Video from 'react-native-video';
 
 const Detail = () => {
   const { post_id } = useLocalSearchParams();
-  const { user, refreshFollowingUser} = useGlobalContext();
+  const { user, refreshFollowingUser, refreshUser} = useGlobalContext();
 
   const [post, setPost] = useState<any>(null);
   const [CreatorId, setCreatorId] = useState<string>('');
@@ -17,6 +18,8 @@ const Detail = () => {
 
   const [comment, setComment] = useState<any>('')
   const [comments, setComments] = useState<any>([])
+  const [videoPlaying, setVideoPlaying] = useState(false);
+  const videoRef = useRef<any>(null);
   let isUserSelf = false
 
   const getData = async () => {
@@ -64,6 +67,8 @@ const Detail = () => {
       await handleFollowButton(user?.user_id as string, CreatorId, isFollowed)
       setIsFollowed(!isFollowed)
       refreshFollowingUser()
+      // Refresh user data to update follower/following counts
+      refreshUser()
     } catch (error) {
       console.log("post_id handleFollow error:", error);
     } 
@@ -83,6 +88,25 @@ const Detail = () => {
       console.log('handleSentComment error', error)
       throw error
     }
+  }
+
+  const handleVideoPress = () => {
+    if (videoPlaying) {
+      videoRef.current?.pause();
+      setVideoPlaying(false);
+    } else {
+      videoRef.current?.play();
+      setVideoPlaying(true);
+    }
+  }
+
+  const handleVideoEnd = () => {
+    setVideoPlaying(false);
+  }
+
+  const handleVideoError = (error: any) => {
+    console.log('Video error:', error);
+    Alert.alert('Error', 'Failed to load video');
   }
 
   useEffect(() => {
@@ -134,17 +158,75 @@ const Detail = () => {
         </View>
         {/* second row */}
         <View className='flex-1 mx-2'>
-          <Image
-            source={{ 
-              uri: post?.image && post.image.trim() !== '' 
-                ? post.image 
-                : 'https://via.placeholder.com/400x300?text=No+Image'
-            }}
-            className='w-full h-[300px]'
-          />
+          {post?.media && Array.isArray(post.media) && post.media.length > 0 ? (
+            post.mediaType === 'video' ? (
+              <Pressable onPress={handleVideoPress} className='w-full h-[300px] rounded-lg overflow-hidden'>
+                <Video
+                  ref={videoRef}
+                  source={{ uri: post.media[0] }}
+                  style={{ width: '100%', height: '100%' }}
+                  resizeMode="contain"
+                  onEnd={handleVideoEnd}
+                  onError={handleVideoError}
+                  paused={!videoPlaying}
+                  repeat={false}
+                  controls={false}
+                />
+                {!videoPlaying && (
+                  <View className='absolute inset-0 bg-black bg-opacity-30 items-center justify-center'>
+                    <View className='bg-white bg-opacity-90 rounded-full w-16 h-16 items-center justify-center'>
+                      <Text className='text-3xl'>▶️</Text>
+                    </View>
+                    <Text className='text-white font-semibold mt-2'>Tap to play</Text>
+                  </View>
+                )}
+              </Pressable>
+            ) : post.media.length === 1 ? (
+              <Image
+                source={{ 
+                  uri: post.media[0] && post.media[0].trim() !== '' 
+                    ? post.media[0] 
+                    : 'https://via.placeholder.com/400x300?text=No+Image'
+                }}
+                className='w-full h-[300px] rounded-lg'
+                style={{ resizeMode: 'cover' }}
+              />
+            ) : (
+              <View className='w-full'>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} className='mb-2'>
+                  {post.media.map((mediaUrl: string, index: number) => (
+                    <Image
+                      key={index}
+                      source={{ 
+                        uri: mediaUrl && mediaUrl.trim() !== '' 
+                          ? mediaUrl 
+                          : 'https://via.placeholder.com/300x300?text=Image'
+                      }}
+                      className='w-[300px] h-[300px] mr-2 rounded-lg'
+                      style={{ resizeMode: 'cover' }}
+                    />
+                  ))}
+                </ScrollView>
+                <View className='flex-row justify-center mb-2'>
+                  {post.media.map((_: string, index: number) => (
+                    <View 
+                      key={index}
+                      className={`w-2 h-2 rounded-full mx-1 ${
+                        index === 0 ? 'bg-blue-500' : 'bg-gray-300'
+                      }`}
+                    />
+                  ))}
+                </View>
+              </View>
+            )
+          ) : (
+            <View className='w-full h-[300px] bg-gray-200 rounded-lg items-center justify-center'>
+              <Text className='text-lg text-gray-500'>No media</Text>
+            </View>
+          )}
+          
           <Text className='text-lg font-semibold mt-2 mx-2'>{post?.title}</Text>
           <Text className='text-sm text-gray-500 mt-2 mx-2'>{post?.content} </Text>
-          
         </View>
         {/* third row */}
         <View className='flex-row items-center justify-between mx-4 my-8 gap-2'>
