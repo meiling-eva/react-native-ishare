@@ -1,8 +1,9 @@
 import { useGlobalContext } from '@/context/GlobalContext'
-import { register } from '@/lib/appwrite'
+import { register, signInWithApple, signInWithGoogle } from '@/lib/appwrite'
+import * as AppleAuthentication from 'expo-apple-authentication'
 import { Link, router } from 'expo-router'
 import React, { useState } from 'react'
-import { Alert, Pressable, SafeAreaView, Text, TextInput, View } from 'react-native'
+import { Alert, Platform, Pressable, SafeAreaView, Text, TextInput, View } from 'react-native'
 
 const sign_up = () => {
   const [email, setEmail] = useState('')
@@ -14,6 +15,13 @@ const sign_up = () => {
   const {refreshUser} = useGlobalContext()
 
   const handleSignUp = async () => {
+    if(!email || !password || !confirmPassword || !username){
+      Alert.alert('Error', 'Please fill in all fields')
+    }
+    if(password !== confirmPassword){
+      Alert.alert('Error', 'Passwords do not match')
+      return
+    }
     setLoading(true)
     try {
       const user = await register(email, password, username)
@@ -23,6 +31,34 @@ const sign_up = () => {
     } catch (error) {
       console.error('Error signing up:', error)
       Alert.alert('Error', 'Error signing up, please check your email and password')
+      setLoading(false)
+    }
+  }
+
+  const handleGoogleSignUp = async () => {
+    setLoading(true)
+    try {
+      const result = await signInWithGoogle()
+      setLoading(false)
+      router.push('/')
+      refreshUser()
+    } catch (error) {
+      console.error('Error signing up with Google:', error)
+      Alert.alert('Error', 'Error signing up with Google')
+      setLoading(false)
+    }
+  }
+
+  const handleAppleSignUp = async () => {
+    setLoading(true)
+    try {
+      const result = await signInWithApple()
+      setLoading(false)
+      router.push('/')
+      refreshUser()
+    } catch (error) {
+      console.error('Error signing up with Apple:', error)
+      Alert.alert('Error', 'Error signing up with Apple')
       setLoading(false)
     }
   }
@@ -63,7 +99,34 @@ const sign_up = () => {
         >
           <Text className='text-white text-center justify-center my-1'>{loading ? 'Signing up...' : 'Sign up'}</Text>
         </Pressable>
-        <View className='flex-row gap-2 items-center justify-center'>
+
+        {/* Divider */}
+        <View className='flex-row items-center mt-6 mb-4'>
+          <View className='flex-1 h-px bg-gray-300' />
+          <Text className='mx-4 text-gray-500'>or</Text>
+          <View className='flex-1 h-px bg-gray-300' />
+        </View>
+
+        {/* Google Sign Up */}
+        <Pressable
+          className='bg-white border-2 border-gray-300 rounded-md p-2 mt-2 h-12 flex-row items-center justify-center'
+          onPress={handleGoogleSignUp}
+        >
+          <Text className='text-gray-700 text-center font-medium'>Continue with Google</Text>
+        </Pressable>
+
+        {/* Apple Sign Up - Only show on iOS */}
+        {Platform.OS === 'ios' && (
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}
+            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+            cornerRadius={8}
+            style={{ width: '100%', height: 48, marginTop: 8 }}
+            onPress={handleAppleSignUp}
+          />
+        )}
+
+        <View className='flex-row gap-2 items-center justify-center mt-6'>
           <Text className='text-gray-500'>Already have an account?</Text>
           <Link href="/sign_in">
             <Text className='text-blue-500 items-center justify-center my-1'>Sign in</Text>

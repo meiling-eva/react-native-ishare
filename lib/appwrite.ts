@@ -1,4 +1,7 @@
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { ImageResult } from 'expo-image-manipulator';
+import { Platform } from 'react-native';
 import { Account, Avatars, Client, Databases, ID, Query, Storage } from 'react-native-appwrite';
 import { User } from './modal';
 
@@ -140,6 +143,118 @@ export const getCurrentUser = async () => {
     return null
   }
 }
+
+// Google Sign-In Configuration
+GoogleSignin.configure({
+  webClientId: 'YOUR_GOOGLE_WEB_CLIENT_ID', // Replace with your Google Web Client ID
+  iosClientId: 'YOUR_GOOGLE_IOS_CLIENT_ID', // Replace with your Google iOS Client ID
+});
+
+// Google Sign-In
+export const signInWithGoogle = async () => {
+  try {
+    // Check if your device supports Google Play
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    
+    // Get the users ID token
+    const signInResult = await GoogleSignin.signIn();
+    
+    // Access the data property from the response
+    const userData = signInResult.data;
+    const idToken = userData?.idToken;
+    const user = userData?.user;
+    
+    if (!idToken || !user) {
+      throw new Error('No ID token or user data received from Google');
+    }
+
+    // For now, we'll create a simple user account with Google info
+    // In production, you should implement proper OAuth flow with Appwrite
+    const googleUser = {
+      email: user.email,
+      name: user.name,
+      photo: user.photo,
+    };
+
+    // Generate a unique user ID for this Google user
+    const userId = `google_${user.id}`;
+    
+    // Check if user exists in our database
+    let existingUser;
+    try {
+      existingUser = await getUserByUserId(userId);
+    } catch (error) {
+      // User doesn't exist, create new user
+      const avatar_url = googleUser.photo || avatars.getInitialsURL(googleUser.name || 'User').toString();
+      await createUser(googleUser.email, googleUser.name || 'User', userId, avatar_url);
+      existingUser = await getUserByUserId(userId);
+    }
+
+    return {
+      user: existingUser
+    };
+  } catch (error) {
+    console.log('Google Sign-In error:', error);
+    throw error;
+  }
+};
+
+// Apple Sign-In
+export const signInWithApple = async () => {
+  try {
+    if (Platform.OS !== 'ios') {
+      throw new Error('Apple Sign-In is only available on iOS');
+    }
+
+    // Check if Apple Sign-In is available
+    const isAvailable = await AppleAuthentication.isAvailableAsync();
+    if (!isAvailable) {
+      throw new Error('Apple Sign-In is not available on this device');
+    }
+
+    // Request Apple authentication
+    const credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+    });
+
+    if (!credential.identityToken) {
+      throw new Error('No identity token received from Apple');
+    }
+
+    // For now, we'll create a simple user account with Apple info
+    // In production, you should implement proper OAuth flow with Appwrite
+    const appleUser = {
+      email: credential.email || '',
+      name: credential.fullName ? 
+        `${credential.fullName.givenName || ''} ${credential.fullName.familyName || ''}`.trim() : 
+        'Apple User',
+    };
+
+    // Generate a unique user ID for this Apple user
+    const userId = `apple_${credential.user}`;
+    
+    // Check if user exists in our database
+    let existingUser;
+    try {
+      existingUser = await getUserByUserId(userId);
+    } catch (error) {
+      // User doesn't exist, create new user
+      const avatar_url = avatars.getInitialsURL(appleUser.name || 'User').toString();
+      await createUser(appleUser.email, appleUser.name || 'User', userId, avatar_url);
+      existingUser = await getUserByUserId(userId);
+    }
+
+    return {
+      user: existingUser
+    };
+  } catch (error) {
+    console.log('Apple Sign-In error:', error);
+    throw error;
+  }
+};
 
 export { account, collectionIdUser, database, databaseId };
 
