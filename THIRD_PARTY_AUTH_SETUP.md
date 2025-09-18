@@ -9,8 +9,9 @@ This guide explains how to set up Google and Apple authentication for your React
 - `expo-auth-session`: For OAuth authentication flows
 - `expo-crypto`: For cryptographic operations
 - `expo-web-browser`: For web browser functionality
-- `@react-native-google-signin/google-signin`: For Google Sign-In
 - `expo-apple-authentication`: For Apple Sign-In
+
+**Note:** Google Sign-In uses Expo's built-in `expo-auth-session` instead of native modules for better compatibility.
 
 ### 2. Files Modified
 - `lib/appwrite.ts`: Added Google and Apple authentication functions

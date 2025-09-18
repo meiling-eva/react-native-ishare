@@ -1,5 +1,5 @@
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import * as AuthSession from 'expo-auth-session';
 import { ImageResult } from 'expo-image-manipulator';
 import { Platform } from 'react-native';
 import { Account, Avatars, Client, Databases, ID, Query, Storage } from 'react-native-appwrite';
@@ -145,54 +145,77 @@ export const getCurrentUser = async () => {
 }
 
 // Google Sign-In Configuration
-GoogleSignin.configure({
-  webClientId: 'YOUR_GOOGLE_WEB_CLIENT_ID', // Replace with your Google Web Client ID
-  iosClientId: 'YOUR_GOOGLE_IOS_CLIENT_ID', // Replace with your Google iOS Client ID
-});
+const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_WEB_CLIENT_ID'; // Replace with your Google Web Client ID
 
-// Google Sign-In
+// Google Sign-In using Expo AuthSession
 export const signInWithGoogle = async () => {
   try {
-    // Check if your device supports Google Play
-    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-    
-    // Get the users ID token
-    const signInResult = await GoogleSignin.signIn();
-    
-    // Access the data property from the response
-    const userData = signInResult.data;
-    const idToken = userData?.idToken;
-    const user = userData?.user;
-    
-    if (!idToken || !user) {
-      throw new Error('No ID token or user data received from Google');
+    // Create OAuth request
+    const request = new AuthSession.AuthRequest({
+      clientId: GOOGLE_CLIENT_ID,
+      scopes: ['openid', 'profile', 'email'],
+      redirectUri: AuthSession.makeRedirectUri({
+        scheme: 'com.eva.ReactNative-iShare', // Your app scheme
+      }),
+      responseType: AuthSession.ResponseType.Code,
+      extraParams: {},
+    });
+
+    // Start the OAuth flow
+    const result = await request.promptAsync({
+      authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+    });
+
+    if (result.type === 'success') {
+      // Exchange code for token
+      const tokenResponse = await AuthSession.exchangeCodeAsync(
+        {
+          clientId: GOOGLE_CLIENT_ID,
+          code: result.params.code,
+          redirectUri: AuthSession.makeRedirectUri({
+            scheme: 'com.eva.ReactNative-iShare',
+          }),
+          extraParams: {
+            code_verifier: request.codeChallenge || '',
+          },
+        },
+        {
+          tokenEndpoint: 'https://oauth2.googleapis.com/token',
+        }
+      );
+
+      // Get user info from Google
+      const userInfoResponse = await fetch(
+        `https://www.googleapis.com/oauth2/v2/userinfo?access_token=${tokenResponse.accessToken}`
+      );
+      const userInfo = await userInfoResponse.json();
+
+      const googleUser = {
+        email: userInfo.email,
+        name: userInfo.name,
+        photo: userInfo.picture,
+      };
+
+      // Generate a unique user ID for this Google user
+      const userId = `google_${userInfo.id}`;
+      
+      // Check if user exists in our database
+      let existingUser;
+      try {
+        existingUser = await getUserByUserId(userId);
+      } catch (error) {
+        // User doesn't exist, create new user
+        const avatar_url = googleUser.photo || avatars.getInitialsURL(googleUser.name || 'User').toString();
+        await createUser(googleUser.email, googleUser.name || 'User', userId, avatar_url);
+        existingUser = await getUserByUserId(userId);
+      }
+
+      return {
+        user: existingUser
+      };
+    } else {
+      throw new Error('Google authentication was cancelled or failed');
     }
-
-    // For now, we'll create a simple user account with Google info
-    // In production, you should implement proper OAuth flow with Appwrite
-    const googleUser = {
-      email: user.email,
-      name: user.name,
-      photo: user.photo,
-    };
-
-    // Generate a unique user ID for this Google user
-    const userId = `google_${user.id}`;
-    
-    // Check if user exists in our database
-    let existingUser;
-    try {
-      existingUser = await getUserByUserId(userId);
-    } catch (error) {
-      // User doesn't exist, create new user
-      const avatar_url = googleUser.photo || avatars.getInitialsURL(googleUser.name || 'User').toString();
-      await createUser(googleUser.email, googleUser.name || 'User', userId, avatar_url);
-      existingUser = await getUserByUserId(userId);
-    }
-
-    return {
-      user: existingUser
-    };
   } catch (error) {
     console.log('Google Sign-In error:', error);
     throw error;
